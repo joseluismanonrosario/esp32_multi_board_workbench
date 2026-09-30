@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Multi-Board Pinout & Hardware Workbench</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: JetBrains Mono & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            appbg: '#04070d',
+            panelbg: '#090d16',
+            cardbg: '#0f172a',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #04070d; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    .pcb-circuit-pattern {
+      background-color: #04070d;
+      background-image: 
+        radial-gradient(circle at 1.5px 1.5px, rgba(56, 189, 248, 0.08) 1.5px, transparent 0),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 24px 24px, 96px 96px, 96px 96px;
+    }
+
+    html:not(.dark) .pcb-circuit-pattern {
+      background-color: #f1f5f9;
+      background-image: 
+        radial-gradient(circle at 1.5px 1.5px, rgba(14, 116, 144, 0.12) 1.5px, transparent 0),
+        linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    }
+
+    :root {
+      --row-height: 42px;
+    }
+
+    .pin-row {
+      height: var(--row-height);
+      display: flex;
+      align-items: center;
+      transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .pin-row.dimmed {
+      opacity: 0.12 !important;
+      filter: grayscale(90%);
+      pointer-events: none;
+    }
+
+    .pin-row.active-highlight {
+      opacity: 1 !important;
+      transform: scale(1.02);
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.8));
+    }
+
+    .wire-svg {
+      width: 100px;
+      height: var(--row-height);
+      display: block;
+      overflow: visible;
+      flex-shrink: 0;
+    }
+
+    .wire-path {
+      stroke: #334155;
+      stroke-width: 2.2;
+      fill: none;
+      transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+    }
+
+    .pin-row:hover .wire-path,
+    .pin-row.active-highlight .wire-path {
+      stroke: #38bdf8 !important;
+      stroke-width: 3.2 !important;
+      filter: drop-shadow(0 0 6px #38bdf8) drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));
+    }
+
+    .pwm-pulse .wire-path {
+      stroke: #f59e0b !important;
+      stroke-width: 2.8;
+      filter: drop-shadow(0 0 8px #f59e0b);
+      animation: pwmWaveAnim 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pwmWaveAnim {
+      0%, 100% { stroke-width: 2.6; filter: drop-shadow(0 0 5px #f59e0b); }
+      50% { stroke-width: 3.6; filter: drop-shadow(0 0 12px #fbbf24) drop-shadow(0 0 20px rgba(245, 158, 11, 0.9)); stroke: #fef08a !important; }
+    }
+
+    /* Color badges matching hardware specifications */
+    .badge-rtcio { background-color: #cf9bdf; color: #2e0842; font-weight: 700; }
+    .badge-adc { background-color: #f79438; color: #3b1700; font-weight: 800; }
+    .badge-dac { background-color: #fca758; color: #431b00; font-weight: 800; }
+    .badge-touch { background-color: #4ade80; color: #052e16; font-weight: 800; }
+    .badge-gpio { background-color: #2563eb; color: #ffffff; font-weight: 700; }
+    .badge-gnd { background-color: #0f172a; color: #f8fafc; border: 1px solid #475569; font-weight: 800; }
+    .badge-vcc { background-color: #dc2626; color: #ffffff; font-weight: 800; }
+    .badge-spi { background-color: #059669; color: #ffffff; font-weight: 800; }
+    .badge-i2c { background-color: #9333ea; color: #ffffff; font-weight: 800; }
+    .badge-uart { background-color: #eab308; color: #1c1402; font-weight: 800; }
+    .badge-enable { background-color: #84cc16; color: #142702; font-weight: 800; }
+    .badge-danger { background-color: #ef4444; color: #ffffff; font-weight: 800; }
+    .badge-warning { background-color: #f59e0b; color: #261400; font-weight: 800; }
+    .badge-usb { background-color: #06b6d4; color: #082f49; font-weight: 800; }
+
+    .num-box {
+      width: 28px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .pin-row:hover .num-box,
+    .pin-row.active-highlight .num-box {
+      border-color: #38bdf8;
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+    }
+
+    .top-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      background: #090e17;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .top-filter-btn:hover {
+      border-color: #38bdf8;
+      color: #f1f5f9;
+      background: #10192a;
+    }
+
+    .top-filter-btn.active {
+      border-color: #06b6d4;
+      background: #082f49;
+      color: #38bdf8;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+    }
+
+    .dot-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      background: #080c14;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .dot-filter-btn:hover {
+      border-color: #475569;
+      color: #f8fafc;
+      background: #111724;
+    }
+
+    .dot-filter-btn.active {
+      border-color: #38bdf8;
+      background: #0e2238;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+
+    .board-pin-contact {
+      width: 17px;
+      height: 17px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, #020305 32%, #b58900 38%, #ffd700 80%, #99781c 100%);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 0 5px rgba(255, 215, 0, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .board-pin-contact:hover,
+    .board-pin-contact.contact-active {
+      transform: scale(1.35);
+      background: radial-gradient(circle, #0284c7 35%, #38bdf8 70%, #ffffff 100%);
+      box-shadow: 0 0 12px #38bdf8, 0 0 24px rgba(56, 189, 248, 0.9);
+    }
+
+    .profile-fieldset {
+      position: relative;
+      border: 1px solid #243044;
+      border-radius: 10px;
+      padding: 0 10px;
+      background: #090e18;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .profile-fieldset:focus-within,
+    .profile-fieldset:hover {
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .profile-label {
+      position: absolute;
+      top: -9px;
+      left: 10px;
+      padding: 0 5px;
+      background: #090e18;
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .profile-select {
+      background: transparent;
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      height: 38px;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      padding-right: 20px;
+    }
+
+    .profile-select option {
+      background: #090e18;
+      color: #f1f5f9;
+    }
+  </style>
+</head>
+<body class="pcb-circuit-pattern text-slate-100 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+
+  <!-- TOP BAR: CLEAN PROFILE SELECTOR HUD -->
+  <section class="bg-[#060a12] border-b border-slate-800 px-4 py-2.5 shadow-xl sticky top-0 z-50">
+    <div class="max-w-[1780px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Profile Selectors Group -->
+      <div class="flex flex-wrap items-center gap-3">
+        
+        <!-- Fieldset 1: ESP Chip -->
+        <div class="profile-fieldset min-w-[160px]">
+          <span class="profile-label">ESP chip</span>
+          <select id="chipSelect" class="profile-select">
+            <option value="ESP32" selected>ESP32</option>
+            <option value="ESP32-S3">ESP32-S3</option>
+            <option value="ESP32-C3">ESP32-C3</option>
+          </select>
+        </div>
+
+        <!-- Fieldset 2: Board Profile -->
+        <div class="profile-fieldset min-w-[280px]">
+          <span class="profile-label">Board / module / chip profile</span>
+          <select id="boardProfileSelect" class="profile-select"></select>
+        </div>
+
+        <!-- Profile info & Variants Button -->
+        <button id="variantsInfoBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-950/70 border border-cyan-700/80 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/60 hover:border-cyan-400 hover:text-white transition-all shadow-md shadow-cyan-950/40">
+          <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Profile info & Variants</span>
+        </button>
+
+      </div>
+
+      <!-- Right Controls: Active Info Pill & Theme Toggle -->
+      <div class="flex items-center gap-3">
+        <div id="boardSpecPill" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 font-mono text-xs text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="boardSpecText">ESP32 • DevKit V1 (30 pines)</span>
+        </div>
+
+        <button id="themeToggleBtn" class="p-2 rounded-xl border border-slate-700 bg-slate-900 text-amber-300 hover:text-amber-200 hover:border-amber-400 transition-colors shadow-inner" title="Cambiar tema claro/oscuro">
+          <svg id="themeSunIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECONDARY HEADER & DUAL FILTER WORKBENCH -->
+  <header class="bg-panelbg/95 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 shadow-2xl">
+    <div class="max-w-[1780px] mx-auto flex flex-col gap-2.5">
+      
+      <!-- Search and Pin Counter -->
+      <div class="flex flex-col xl:flex-row items-center justify-between gap-2.5">
+        <div class="flex items-center gap-3 w-full xl:w-auto">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-indigo-600 p-0.5 shadow-lg shadow-sky-500/20 shrink-0">
+            <div id="chipIconBadge" class="w-full h-full bg-[#050912] rounded-[10px] flex items-center justify-center font-bold text-sky-400 font-mono text-xs">
+              ESP
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 id="mainTitleHeader" class="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+                ESP32 DevKit V1 <span id="pinCountPill" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-bold">30 PINES</span>
+              </h1>
+              <span id="activeCountBadge" class="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-800 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> <span id="matchCountText">30/30 Pines Activos</span>
+              </span>
+            </div>
+            <p id="chipDescHeader" class="text-[11px] text-slate-400">Diseño PCB fotorrealista sincronizado con trazado senoidal PWM y advertencias de hardware</p>
+          </div>
+        </div>
+
+        <!-- Real-Time Search Box -->
+        <div class="w-full xl:w-96 relative">
+          <input 
+            id="searchInput"
+            type="text" 
+            placeholder="Buscar GPIO, pin, bus o etiqueta (ej: RTCIO, ADC1, Touch)..."
+            class="w-full bg-[#050811] border border-slate-700/80 rounded-xl px-3.5 py-1.5 pl-9 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 font-mono transition-all shadow-inner"
+          />
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <button id="clearSearchBtn" class="hidden absolute right-2.5 top-2 w-4 h-4 text-slate-400 hover:text-white text-xs">&times;</button>
+        </div>
+      </div>
+
+      <!-- FILA 1 DE FILTROS: Categorías funcionales principales -->
+      <div class="flex flex-wrap items-center gap-1.5 text-xs pt-1 border-t border-slate-800/80">
+        <span class="text-slate-400 font-mono text-[11px] font-bold shrink-0 tracking-wider mr-1">FILTRAR:</span>
+
+        <button data-group="top" data-filter="all" class="top-filter-btn active">
+          ✦ Todos los pines
+        </button>
+        <button data-group="top" data-filter="leds_relays" class="top-filter-btn">
+          💡 LEDs y Relés
+        </button>
+        <button data-group="top" data-filter="pots_adc" class="top-filter-btn">
+          🎛 Potenciómetros y ADC
+        </button>
+        <button data-group="top" data-filter="buttons_inputs" class="top-filter-btn">
+          🔘 Botones e Inputs
+        </button>
+        <button data-group="top" data-filter="bus_i2c" class="top-filter-btn">
+          📟 Bus I²C
+        </button>
+        <button data-group="top" data-filter="bus_spi" class="top-filter-btn">
+          ⚡ Bus SPI
+        </button>
+        <button data-group="top" data-filter="bus_uart" class="top-filter-btn">
+          📡 UART / Serial
+        </button>
+        <button data-group="top" data-filter="dac_output" class="top-filter-btn">
+          🔊 Salida DAC
+        </button>
+        <button data-group="top" data-filter="touch_sensor" class="top-filter-btn">
+          👆 Sensor Táctil
+        </button>
+        <button data-group="top" data-filter="pwm_analog" class="top-filter-btn text-amber-300 border-amber-500/40">
+          〰 PWM (Analógico/Servos)
+        </button>
+        <button data-group="top" data-filter="gpio_digital" class="top-filter-btn">
+          💻 Digitales (GPIO I/O)
+        </button>
+        <button data-group="top" data-filter="serial_ports" class="top-filter-btn">
+          🔄 Puertos Seriales
+        </button>
+      </div>
+
+      <!-- FILA 2 DE FILTROS: Terminal por tipo de señal con puntos de color -->
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <button data-group="dot" data-filter="dot_power" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shadow-[0_0_6px_#ef4444]"></span>
+          <span>Alimentación</span>
+        </button>
+        <button data-group="dot" data-filter="dot_gnd" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-slate-900 inline-block"></span>
+          <span>GND (Tierra)</span>
+        </button>
+        <button data-group="dot" data-filter="dot_gpio" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shadow-[0_0_6px_#3b82f6]"></span>
+          <span>GPIO Digital</span>
+        </button>
+        <button data-group="dot" data-filter="dot_adc" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_#f59e0b]"></span>
+          <span>ADC / Analógico</span>
+        </button>
+        <button data-group="dot" data-filter="dot_i2c_rtc" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-[0_0_6px_#a855f7]"></span>
+          <span>I²C / RTC</span>
+        </button>
+        <button data-group="dot" data-filter="dot_spi" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-teal-400 inline-block shadow-[0_0_6px_#2dd4bf]"></span>
+          <span>SPI / High Speed</span>
+        </button>
+        <button data-group="dot" data-filter="dot_uart" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block shadow-[0_0_6px_#eab308]"></span>
+          <span>UART (Serial)</span>
+        </button>
+        <button data-group="dot" data-filter="dot_touch" class="dot-filter-btn">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-[0_0_6px_#34d399]"></span>
+          <span>Touch Sensor</span>
+        </button>
+      </div>
+
+      <!-- TEXTO INSTRUCTIVO -->
+      <div class="text-[11px] sm:text-xs text-slate-300 flex flex-wrap items-center justify-center gap-1.5 py-1 text-center font-medium bg-slate-900/60 rounded-xl border border-slate-800">
+        <span>👆</span>
+        <span>Haz clic en cualquier <strong class="text-cyan-400">pin</strong> o en sus <strong class="text-cyan-400">etiquetas de color</strong> para ver su ficha técnica, qué significa cada función y la explicación del código paso a paso.</span>
+        <span class="hidden md:inline text-amber-400 ml-2 font-mono text-[11px]">(<span class="font-bold">~</span> = Salida PWM / LEDC)</span>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN SIMULATOR WORKBENCH -->
+  <main class="flex-1 w-full max-w-[1780px] mx-auto p-2 sm:p-5 flex flex-col items-center justify-start overflow-x-auto">
+
+    <div id="workbenchContainer" class="min-w-[1380px] max-w-[1620px] bg-panelbg/90 border border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative flex items-start justify-between my-2 transition-all duration-300">
+      
+      <!-- 1. LEFT PIN LABELS -->
+      <div id="leftContainer" class="w-[520px] flex flex-col justify-start" style="margin-top: 24px;"></div>
+
+      <!-- 2. DYNAMIC REAL HARDWARE BOARD SVG -->
+      <div id="boardWrapper" class="w-[300px] relative flex flex-col items-center justify-between select-none shrink-0 transition-all duration-300">
+        
+        <div id="boardCardInner" class="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.95)] border border-slate-700/80 bg-[#0c0d10]">
+          <svg id="boardSvg" class="w-full h-full" viewBox="0 0 300 780" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="pcbSubstrate" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1c1e23"/>
+                <stop offset="25%" stop-color="#14161a"/>
+                <stop offset="65%" stop-color="#101114"/>
+                <stop offset="100%" stop-color="#0a0b0d"/>
+              </linearGradient>
+
+              <linearGradient id="metalShield" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#e2e7ec"/>
+                <stop offset="15%" stop-color="#ced5dc"/>
+                <stop offset="45%" stop-color="#b6bfc7"/>
+                <stop offset="70%" stop-color="#9da7b0"/>
+                <stop offset="90%" stop-color="#c1c9d2"/>
+                <stop offset="100%" stop-color="#8a949f"/>
+              </linearGradient>
+
+              <radialGradient id="tinSolderPad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#1e2229"/>
+                <stop offset="38%" stop-color="#090a0d"/>
+                <stop offset="48%" stop-color="#9aa0a6"/>
+                <stop offset="72%" stop-color="#e3e8ee"/>
+                <stop offset="92%" stop-color="#8d949c"/>
+                <stop offset="100%" stop-color="#555d67"/>
+              </radialGradient>
+
+              <radialGradient id="goldHole" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#06080b"/>
+                <stop offset="50%" stop-color="#07090d"/>
+                <stop offset="60%" stop-color="#b8860b"/>
+                <stop offset="85%" stop-color="#ffd700"/>
+                <stop offset="100%" stop-color="#8a6508"/>
+              </radialGradient>
+
+              <linearGradient id="icEpoxy" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2d323b"/>
+                <stop offset="40%" stop-color="#1b1e24"/>
+                <stop offset="100%" stop-color="#111317"/>
+              </linearGradient>
+            </defs>
+
+            <!-- DYNAMIC BOARD INTERIOR GENERATED VIA JAVASCRIPT -->
+            <g id="svgDynamicBoardContent"></g>
+
+            <!-- DYNAMIC SILKSCREEN LABELS GROUP -->
+            <g id="svgSilkscreenLeft" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle"></g>
+            <g id="svgSilkscreenRight" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle"></g>
+
+            <!-- DYNAMIC SOLDER PADS GROUP -->
+            <g id="svgSolderPadsLeft"></g>
+            <g id="svgSolderPadsRight"></g>
+
+          </svg>
+        </div>
+
+        <!-- Dynamic Onboard LEDs Container -->
+        <div id="boardLedsOverlay" class="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 z-20 bg-[#070b13]/95 px-3 py-1.5 rounded-full border border-slate-700/80 shadow-2xl transition-all"></div>
+
+        <!-- CONTACT PADS OVERLAY -->
+        <div id="pcbHeaderLeft" class="absolute left-2 top-[24px] flex flex-col justify-start items-center pointer-events-auto z-10 w-4"></div>
+        <div id="pcbHeaderRight" class="absolute right-2 top-[24px] flex flex-col justify-start items-center pointer-events-auto z-10 w-4"></div>
+
+      </div>
+
+      <!-- 3. RIGHT PIN LABELS -->
+      <div id="rightContainer" class="w-[520px] flex flex-col justify-start" style="margin-top: 24px;"></div>
+
+    </div>
+
+    <!-- FOOTER LEGEND -->
+    <div class="w-full max-w-[1440px] flex flex-col sm:flex-row items-center justify-between mt-3 px-4 text-slate-400 text-xs gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <span>Las líneas con <strong class="text-amber-300 font-mono">onda senoidal (~/PWM)</strong> indican compatibilidad con modulación por ancho de pulsos para servos, regulación de potencia y audio.</span>
+      </div>
+      <div class="font-mono text-slate-400 text-[11px]">
+        ESP32 Multi-Board Workbench • Dynamic Pinout & Hardware Engine
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: PROFILE INFO & VARIANTS ENRICHED -->
+  <div id="variantsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="variantsCard" class="bg-cardbg border border-slate-700 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-panelbg shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-300 font-mono font-bold text-base flex items-center justify-center border border-cyan-500/40 shadow-lg">
+            📋
+          </div>
+          <div>
+            <h3 id="varModalTitle" class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              Ficha Técnica y Variantes de Hardware
+            </h3>
+            <p id="varModalSubtitle" class="text-xs text-slate-400 font-mono">Especificaciones completas, arquitectura y proyectos recomendados</p>
+          </div>
+        </div>
+        <button id="closeVariantsBtn" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="px-6 py-5 overflow-y-auto space-y-5 text-xs sm:text-sm">
+        
+        <!-- 1. General Specs -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+            1. Especificación Técnica General de la Placa Seleccionada
+          </h4>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 font-mono text-xs">
+            <div class="bg-[#0b101d] border border-slate-800 p-3 rounded-2xl">
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">SoC / Arquitectura</span>
+              <strong id="varChipArch" class="text-white text-xs block mt-0.5">--</strong>
+            </div>
+            <div class="bg-[#0b101d] border border-slate-800 p-3 rounded-2xl">
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">Frecuencia CPU</span>
+              <strong id="varChipFreq" class="text-white text-xs block mt-0.5">--</strong>
+            </div>
+            <div class="bg-[#0b101d] border border-slate-800 p-3 rounded-2xl">
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">Memoria RAM / Flash</span>
+              <strong id="varChipMemory" class="text-emerald-300 text-xs block mt-0.5">--</strong>
+            </div>
+            <div class="bg-[#0b101d] border border-slate-800 p-3 rounded-2xl">
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">Conectividad Inalámbrica</span>
+              <strong id="varChipWireless" class="text-sky-300 text-xs block mt-0.5">--</strong>
+            </div>
+          </div>
+
+          <div class="bg-[#070b13] border border-slate-800 rounded-2xl p-4">
+            <p id="varChipSummary" class="text-slate-300 leading-relaxed text-xs"></p>
+          </div>
+        </div>
+
+        <!-- 2. Variants List -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-purple-300 uppercase tracking-wider font-mono flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+            2. Variantes de Módulo y Diseños Existentes
+          </h4>
+          <div id="varVariantsList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- 3. Projects List -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-emerald-300 uppercase tracking-wider font-mono flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            3. Recomendación de Usos y Proyectos Ideales para esta Placa
+          </h4>
+          <div id="varProjectsList" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- 4. Warnings -->
+        <div class="space-y-2.5">
+          <h4 class="text-xs font-bold text-rose-300 uppercase tracking-wider font-mono flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            4. Advertencias Críticas de Hardware para esta Variante
+          </h4>
+          <div id="varWarningsBox" class="p-4 rounded-2xl border border-rose-800/60 bg-rose-950/30 text-rose-200 text-xs leading-relaxed space-y-2"></div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-panelbg border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <span id="varFooterNote">ESP32 Hardware Profile Engine</span>
+        <button id="closeVariantsBtnFooter" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- POPUP MODAL DIALOG: TECHNICAL PIN DETAILS -->
+  <div id="pinModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="pinModalCard" class="bg-cardbg border border-slate-700 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-panelbg shrink-0">
+        <div class="flex items-center gap-3">
+          <div id="modalPinBadge" class="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-300 font-mono font-bold text-sm flex flex-col items-center justify-center border border-cyan-500/40 shrink-0 shadow-lg">
+            <span class="text-[9px] uppercase font-normal text-cyan-400">PIN</span>
+            <span id="modalPinNumber" class="text-base leading-none">--</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="modalTitle" class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                Detalles del Pin
+              </h3>
+              <span id="modalPwmBadge" class="hidden text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700">
+                ~ PWM Compatible
+              </span>
+            </div>
+            <p id="modalSubtitle" class="text-xs text-slate-400 font-mono">GPIO & Periféricos</p>
+          </div>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="px-6 py-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        
+        <!-- Safety Status Banner -->
+        <div id="modalSafety" class="p-3.5 rounded-2xl border flex items-start gap-3"></div>
+
+        <!-- Hardware Tags / Aliases -->
+        <div>
+          <h4 class="text-[11px] uppercase tracking-wider text-slate-400 font-bold mb-2">Funciones de hardware asignadas a este pin:</h4>
+          <div id="modalTags" class="flex flex-wrap gap-1.5 font-mono text-xs"></div>
+        </div>
+
+        <!-- EXPLANATION OF NON-BLUE LABELS -->
+        <div class="bg-[#0b101d] border border-slate-700/80 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-bold text-purple-300 uppercase tracking-wide flex items-center gap-2 font-mono">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]"></span>
+              ¿Qué significan estas características técnicas? (Etiquetas no azules)
+            </h4>
+            <span class="text-[10px] text-slate-400 font-mono">Guía de Hardware</span>
+          </div>
+          
+          <div id="modalLabelExplanations" class="space-y-2.5"></div>
+        </div>
+
+        <!-- WHAT CAN I CONNECT? -->
+        <div class="bg-[#070b13] border border-cyan-900/50 rounded-2xl p-4 space-y-2.5">
+          <h4 class="text-xs font-bold text-cyan-300 uppercase tracking-wide flex items-center gap-2">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            ¿Qué componentes puedo conectar en este pin?
+          </h4>
+          <div id="modalComponents" class="text-slate-300 leading-relaxed space-y-2.5"></div>
+        </div>
+
+        <!-- Wiring Tip -->
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-amber-200 text-xs">
+          <div class="font-bold flex items-center gap-2 mb-1 text-amber-300">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            Consejo técnico de cableado y niveles lógicos:
+          </div>
+          <p id="modalWiringTip" class="text-amber-200/90 leading-relaxed"></p>
+        </div>
+
+        <!-- Arduino Code Snippet -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-mono text-slate-300 font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Ejemplo de código Arduino C++ funcional:
+            </span>
+            <button id="copyCodeBtn" class="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-800/60 transition-colors">
+              Copiar código
+            </button>
+          </div>
+          <pre id="modalCode" class="p-3.5 bg-[#050811] border border-slate-800 rounded-2xl font-mono text-xs text-emerald-400 overflow-x-auto shadow-inner"></pre>
+        </div>
+
+        <!-- STEP-BY-STEP EXPLANATION OF WHAT THE CODE DOES -->
+        <div class="bg-[#091222] border border-sky-800/70 rounded-2xl p-4 space-y-3 shadow-lg">
+          <div class="flex items-center justify-between border-b border-sky-900/60 pb-2">
+            <h4 class="text-xs font-bold text-sky-300 uppercase tracking-wide flex items-center gap-2 font-mono">
+              <span class="text-base">📖</span>
+              ¿Qué hace este código? (Explicación paso a paso)
+            </h4>
+            <span class="text-[10px] text-sky-400 font-mono bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-800/80">
+              Guía de Software
+            </span>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">🎯 Objetivo del programa:</span>
+            <p id="modalCodeObjective" class="text-slate-200 text-xs leading-relaxed"></p>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">⚙️ Desglose de instrucciones clave:</span>
+            <div id="modalCodeBreakdown" class="space-y-1.5 font-mono text-xs"></div>
+          </div>
+
+          <div class="bg-[#050c18] border border-sky-900/50 rounded-xl p-3 text-[11px] text-sky-200/90 leading-relaxed flex items-start gap-2">
+            <span class="text-sky-400 font-bold shrink-0 mt-0.5">💡</span>
+            <div>
+              <strong class="text-sky-300 font-sans font-bold">Consejo de depuración: </strong>
+              <span id="modalCodeTips" class="font-sans"></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-panelbg border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <span id="modalFooterProfile">ESP32 Workbench</span>
+        <button id="modalCloseBtnFooter" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC & COMPLETE PINOUT CATALOG -->
+  <script>
+    const CHIP_CATALOG = {
+      "ESP32": {
+        badge: "ESP32",
+        profiles: [
+          { 
+            id: "devkit_v1_30", 
+            name: "DevKit V1 (30 pines)", 
+            pins: 30, 
+            height: 780,
+            boardType: "classic_30",
+            specs: {
+              arch: "Dual-Core 32-bit Xtensa® LX6",
+              freq: "240 MHz (Hasta 600 DMIPS)",
+              memory: "520 KB SRAM • 4MB Flash SPI",
+              wireless: "Wi-Fi 802.11 b/g/n + BT 4.2 BR/EDR & BLE",
+              summary: "El módulo clásico de referencia en el desarrollo maker y profesional. Posee 2 núcleos independientes de alto rendimiento, radio Wi-Fi potente y conversores analógicos con 2 canales DAC de 8 bits reales.",
+              variants: [
+                { name: "ESP-WROOM-32 (Antena PCB)", desc: "Versión más extendida con antena trazada en la placa PCB con ganancia de ~2dBi." },
+                { name: "ESP-WROOM-32U (Conector IPEX/U.FL)", desc: "Carece de antena en PCB; incluye conector coaxial para antenas omnidireccionales de alta ganancia exteriores." },
+                { name: "ESP32-WROVER-E (Con PSRAM)", desc: "Integra 4MB u 8MB de memoria PSRAM externa para proyectos pesados de buffer y audio." },
+                { name: "ESP32-WROOM-32E (ECO v3)", desc: "Revisión moderna de silicio que soluciona bugs de hardware del ADC y temporizadores de versiones tempranas." }
+              ],
+              projects: [
+                { title: "🏠 Domótica con Relés", desc: "Gestión de luminarias y electrodomésticos vía MQTT, Home Assistant o servidores web locales." },
+                { title: "🌤️ Estaciones Meteorológicas", desc: "Lectura de BME280 (I2C) y anemómetro por pulso mientras se envían datos periódicos por Wi-Fi." },
+                { title: "🔊 Síntesis de Sonido y Audio", desc: "Generación de ondas senoidales o voz PCM directa a través de sus salidas DAC1/DAC2 sin DAC externo." }
+              ],
+              warnings: [
+                "<strong>ADC2 y Wi-Fi:</strong> Los pines analógicos ADC2 (GPIO 0, 2, 4, 12, 13, 14, 15, 25, 26, 27) NO funcionan como entrada analógica cuando el Wi-Fi está encendido. Para sensores analógicos usa siempre <strong>ADC1 (GPIO 32 a 39)</strong>.",
+                "<strong>Pines Strapping de arranque:</strong> GPIO 0, 2, 12 y 15 deciden el modo de bootloader. Si fuerzas GPIO12 en nivel ALTO al energizar, la placa fallará al alimentar la memoria Flash.",
+                "<strong>GPIO 34 a 39:</strong> Son exclusivamente de entrada (Input-Only); no admiten `pinMode(OUTPUT)` ni resistencias internas pull-up."
+              ]
+            }
+          },
+          { 
+            id: "devkitc_v4_38", 
+            name: "DevKitC V4 (38 pines)", 
+            pins: 38, 
+            height: 948,
+            boardType: "classic_38",
+            specs: {
+              arch: "Dual-Core 32-bit Xtensa® LX6",
+              freq: "240 MHz",
+              memory: "520 KB SRAM • 4MB a 8MB Flash",
+              wireless: "Wi-Fi 802.11 b/g/n + BT 4.2 BLE",
+              summary: "Formato industrial oficial de Espressif Systems. Proporciona mayor cantidad de pines físicos rompiendo la cabecera en 19 pines por lateral, exponiendo alimentaciones extras y los pines de control de la memoria SPI Flash.",
+              variants: [
+                { name: "DevKitC-32D", desc: "Monta el módulo WROOM-32D con regulador LDO de hasta 600mA." },
+                { name: "DevKitC-32E", desc: "Monta el módulo WROOM-32E con cristal de cuarzo protegido y menor consumo RF." },
+                { name: "DevKitC-32UE", desc: "Variante con conector U.FL para gabinetes metálicos estancos industriales." }
+              ],
+              projects: [
+                { title: "🏭 Control Industrial PLC", desc: "Proyectos donde se requiere el máximo conteo de E/S digitales para acoplar optoacopladores y buses RS485." },
+                { title: "🌐 Pasarela Multiprotocolo", desc: "Puente entre buses UART, I2C, SPI y comunicación inalámbrica MQTT hacia la nube." },
+                { title: "📊 Dataloggers Complejos", desc: "Múltiples sensores analógicos en paralelo en ADC1 con pantalla OLED y tarjeta SD." }
+              ],
+              warnings: [
+                "<strong>¡PROHIBICIÓN ESTRICTA CON PINES FLASH!:</strong> Los pines <strong>CMD, SD0, SD1, SD2, SD3 y CLK (GPIO 6 al 11)</strong> están expuestos en el header. <em>NUNCA conectes nada en ellos</em>, pues están cableados al silicio de la memoria flash; tocarlos colapsa el procesador al instante.",
+                "<strong>GPIO 0 (Botón Boot):</strong> Si se mantiene en tierra al encender entra en modo descarga de firmware.",
+                "<strong>Ancho en Protoboard:</strong> Deja únicamente una sola fila de perforaciones libre en una protoboard estándar; se recomienda puentear cables por debajo."
+              ]
+            }
+          }
+        ]
+      },
+      "ESP32-S3": {
+        badge: "S3",
+        profiles: [
+          {
+            id: "s3_devkitc_1",
+            name: "ESP32-S3-DevKitC-1 (44 pines)",
+            pins: 44,
+            height: 1074,
+            boardType: "s3_44",
+            specs: {
+              arch: "Dual-Core 32-bit Xtensa® LX7 con Extensiones Vectoriales IA",
+              freq: "240 MHz (Aceleración Machine Learning)",
+              memory: "512 KB SRAM • 384 KB ROM • Hasta 8MB/16MB Octal PSRAM",
+              wireless: "Wi-Fi 802.11 b/g/n + Bluetooth 5.0 LE & Long-Range Mesh",
+              summary: "El microcontrolador insignia de Espressif para inteligencia artificial en el borde (Edge AI), visión artificial, procesamiento de lenguaje natural y periféricos de alta velocidad. Posee dos puertos USB (uno nativo OTG y uno para UART/depuración con JTAG).",
+              variants: [
+                { name: "ESP32-S3-WROOM-1", desc: "Memoria Quad SPI Flash estándar con antena integrada en circuito impreso." },
+                { name: "ESP32-S3-WROOM-1U", desc: "Versión con conector IPEX para aplicaciones de largo alcance con antena externa." },
+                { name: "ESP32-S3-WROOM-2 (Octal PSRAM)", desc: "Memoria Octal SPI de ultra-alta velocidad (OPI) para procesamiento de frames de cámara OV2640/OV5640 a altos FPS." }
+              ],
+              projects: [
+                { title: "👁️ Visión Artificial y TinyML", desc: "Clasificación de objetos, reconocimiento facial y detección de anomalías con TensorFlow Lite for Microcontrollers." },
+                { title: "🗣️ Reconocimiento de Voz Local", desc: "Detección de comandos de activación por voz (Wake-Word) sin depender de internet mediante ESP-Skainet." },
+                { title: "⌨ Dispositivos USB Nativos (HID/MIDI)", desc: "Teclados mecánicos, controladores de DJ MIDI o emuladores de ratón y memorias MSC gracias a su USB OTG nativo." }
+              ],
+              warnings: [
+                "<strong>Sin DAC integrado:</strong> A diferencia del ESP32 clásico, el ESP32-S3 NO tiene DAC de hardware. Para audio analógico se debe utilizar bus I2S con un decodificador externo como MAX98357A.",
+                "<strong>Doble Puerto USB:</strong> El conector 'USB' es nativo directo al silicio (D+/D- en GPIO 19 y 20). El conector 'UART' pasa a través de un puente CP2102/CH343.",
+                "<strong>Octal Flash/PSRAM:</strong> En variantes Octal (WROOM-2), los pines GPIO 33 a 37 quedan dedicados a la memoria rápida y no se pueden usar como GPIO."
+              ]
+            }
+          }
+        ]
+      },
+      "ESP32-C3": {
+        badge: "C3",
+        profiles: [
+          {
+            id: "c3_supermini",
+            name: "ESP32-C3 SuperMini (16 pines)",
+            pins: 16,
+            height: 486,
+            boardType: "c3_16",
+            specs: {
+              arch: "Single-Core 32-bit RISC-V RV32IMC",
+              freq: "160 MHz",
+              memory: "400 KB SRAM • 384 KB ROM • 4MB Flash Integrada",
+              wireless: "Wi-Fi 4 + Bluetooth 5.0 LE & Coded PHY (Largo alcance)",
+              summary: "Microcontrolador de coste ultra-económico basado en la arquitectura abierta y moderna RISC-V. Diseñado para ser el reemplazo definitivo del clásico ESP8266, consumiendo una fracción de energía y ofreciendo seguridad criptográfica por hardware (RSA-3072).",
+              variants: [
+                { name: "SuperMini C3", desc: "Formato en miniatura con orificios almenados para soldadura superficial o protoboard compacta." },
+                { name: "ESP32-C3-WROOM-02", desc: "Módulo certificado con memoria flash externa en encapsulado metálico tradicional." }
+              ],
+              projects: [
+                { title: "🔋 Sensores a Batería de Larga Vida", desc: "Monitor de temperatura y humedad BLE transmitiendo en Deep Sleep con consumos de ~5µA." },
+                { title: "💡 Iluminación Inteligente Matter", desc: "Controladores LED Wi-Fi compactos compatibles con Apple HomeKit, Google Home y Alexa a través del estándar Matter." },
+                { title: "🛰️ Balizas y Nodos BLE Mesh", desc: "Transmisores de proximidad Bluetooth 5.0 de largo alcance (Long Range Coded PHY)." }
+              ],
+              warnings: [
+                "<strong>Arquitectura RISC-V:</strong> No utiliza el compilador Xtensa; las librerías con assembly nativo de LX6 clásico fallarán. Usa librerías Arduino estándar actualizadas.",
+                "<strong>Puerto USB CDC Nativo:</strong> Los pines GPIO 18 (D-) y GPIO 19 (D+) están unidos al conector USB-C nativo. Si deshabilitas el USB CDC en las opciones de compilación, perderás el monitor serie.",
+                "<strong>GPIO 9 (Boot):</strong> Posee un pull-up interno. Si se lleva a GND al arrancar entra en modo de descarga."
+              ]
+            }
+          }
+        ]
+      }
+    };
+
+    const BASE_PINS_30 = [
+      { id: "L15", side: "left", pinIndex: 15, silk: "EN", gpio: null, title: "EN / ENABLE (Reset & Enable)", tags: ["ENABLE", "CHIP_PU", "Reset"], featureTypes: ["ENABLE"], isPWM: false, isDigital: false, isSerial: false, categories: ["buttons_inputs"], dotTypes: [], safety: "warning", safetyTitle: "Pin de Control del Sistema (Reset)", safetyText: "No es un GPIO estándar. Se usa únicamente para resetear el microcontrolador o despertar del modo Deep Sleep.", components: ["<strong>Botón de Reset externo:</strong> Pulsador normalmente abierto entre este pin y GND.", "<strong>Capacitor de 10µF (entre EN y GND):</strong> Solución si Arduino IDE arroja 'Failed to connect to ESP32'."], wiringTip: "Tiene pull-up interna a 3.3V. Un pulso a GND reinicia el chip.", code: `void setup() {\n  // Al soltar el botón EN, el código inicia desde aquí.\n}`, codeExplanation: { objective: "Comprender la función del pin físico de Reset.", breakdown: [{ fn: "EN (Hardware)", desc: "Entrada de habilitación conectada a 3.3V por pull-up." }, { fn: "Pulso a GND", desc: "Forzar a 0V apaga el oscilador; al soltarlo reinicia setup()." }], tips: "En Arduino IDE, pulsar EN al ver 'Connecting.......' fuerza la sincronización de bootloader." } },
+      { id: "L14", side: "left", pinIndex: 14, silk: "VP", gpio: 36, title: "GPIO 36 / SensVP / ADC1_0", tags: ["GPIX36", "SensVP", "ADC1_0", "RTCIO0", "Input-Only"], featureTypes: ["RTCIO", "ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc", "buttons_inputs"], dotTypes: ["dot_adc", "dot_i2c_rtc"], safety: "input-only", safetyTitle: "Solo Entrada (Input-Only)", safetyText: "No tiene transistores de salida ni resistencias pull-up internas.", components: ["<strong>Potenciómetros:</strong> Potenciómetro de 10kΩ. Funciona con Wi-Fi encendido.", "<strong>Sensores analógicos:</strong> LDR con divisor, sensores de humedad capacitivos."], wiringTip: "Rango analógico de 0 a 3.3V (12 bits: 0 a 4095). ¡Nunca aplicar más de 3.3V!", code: `const int potPin = 36;\nvoid setup() {\n  Serial.begin(115200);\n  analogReadResolution(12);\n}\nvoid loop() {\n  int val = analogRead(potPin);\n  Serial.printf("ADC: %d | %.2f V\\n", val, (val/4095.0)*3.3);\n  delay(200);\n}`, codeExplanation: { objective: "Muestrear el voltaje analógico y convertirlo a voltios.", breakdown: [{ fn: "analogReadResolution(12);", desc: "Configura a 12 bits (0 a 4095)." }, { fn: "analogRead(36);", desc: "Lee el pin 36 sin interferir con Wi-Fi (ADC1)." }], tips: "Asegura la consola en 115200 baudios." } },
+      { id: "L13", side: "left", pinIndex: 13, silk: "VN", gpio: 39, title: "GPIO 39 / SensVN / ADC1_3", tags: ["GPIX39", "SensVN", "ADC1_3", "RTCIO3", "Input-Only"], featureTypes: ["RTCIO", "ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc", "buttons_inputs"], dotTypes: ["dot_adc", "dot_i2c_rtc"], safety: "input-only", safetyTitle: "Solo Entrada (Input-Only)", safetyText: "Entrada pura sin circuitería de salida.", components: ["<strong>Joysticks analógicos:</strong> Eje X/Y.", "<strong>Monitoreo de Batería:</strong> Con divisor de tensión."], wiringTip: "Totalmente compatible con Wi-Fi y Bluetooth activos.", code: `void setup() { Serial.begin(115200); }\nvoid loop() {\n  int raw = analogRead(39);\n  Serial.printf("Voltaje: %.2f V\\n", (raw/4095.0)*3.3);\n  delay(300);\n}`, codeExplanation: { objective: "Medir señales analógicas continuas.", breakdown: [{ fn: "analogRead(39)", desc: "Lee canal ADC1_CH3." }], tips: "Para mayor estabilidad calcula un promedio de 10 muestras." } },
+      { id: "L12", side: "left", pinIndex: 12, silk: "D34", gpio: 34, title: "GPIO 34 / ADC1_6", tags: ["GPIO34", "ADC1_6", "RTCIO4", "Input-Only"], featureTypes: ["RTCIO", "ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc", "buttons_inputs"], dotTypes: ["dot_adc", "dot_i2c_rtc"], safety: "input-only", safetyTitle: "Solo Entrada (Input-Only)", safetyText: "Lectura digital o analógica. Sin transistores de salida.", components: ["<strong>Potenciómetros:</strong> Lectura lineal.", "<strong>Fotoresistencias (LDR):</strong> Divisor resistivo."], wiringTip: "Requiere resistencia externa si se usa como entrada digital.", code: `void setup() {\n  Serial.begin(115200);\n  pinMode(34, INPUT);\n}\nvoid loop() {\n  Serial.println(digitalRead(34) ? "ALTO" : "BAJO");\n  delay(250);\n}`, codeExplanation: { objective: "Leer estado digital con resistencia pull externa.", breakdown: [{ fn: "pinMode(34, INPUT)", desc: "Entrada sin pull-up interna." }], tips: "Nunca dejar flotando." } },
+      { id: "L11", side: "left", pinIndex: 11, silk: "D35", gpio: 35, title: "GPIO 35 / ADC1_7", tags: ["GPIO35", "ADC1_7", "RTCIO5", "Input-Only"], featureTypes: ["RTCIO", "ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc", "buttons_inputs"], dotTypes: ["dot_adc", "dot_i2c_rtc"], safety: "input-only", safetyTitle: "Solo Entrada (Input-Only)", safetyText: "Entrada analógica libre de Wi-Fi.", components: ["<strong>Sensor de Sonido analógico:</strong> Micrófono.", "<strong>Sensores de Gas MQ:</strong> Con divisor a 3.3V."], wiringTip: "Inmune a interferencias de radio Wi-Fi.", code: `void setup() { Serial.begin(115200); }\nvoid loop() {\n  Serial.printf("Canal ADC1_CH7: %d\\n", analogRead(35));\n  delay(500);\n}`, codeExplanation: { objective: "Muestreo periódico de sensores continuos.", breakdown: [{ fn: "analogRead(35)", desc: "Muestrea sin pinMode previo." }], tips: "Filtra por software con promedio móvil." } },
+      { id: "L10", side: "left", pinIndex: 10, silk: "D32", gpio: 32, title: "GPIO 32 / ADC1_4 / Touch9", tags: ["GPIO32", "ADC1_4", "Touch9", "RTCIO9", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "buttons_inputs", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro para Uso General", safetyText: "Entrada/salida completa, PWM, ADC1 y Touch.", components: ["<strong>LEDs con resistencia (220Ω):</strong> Salida digital o PWM.", "<strong>Módulos de Relé:</strong> Activación segura.", "<strong>Sensor Touch:</strong> Cable pelado para detectar toque."], wiringTip: "Pin polivalente recomendado.", code: `void setup() { Serial.begin(115200); }\nvoid loop() {\n  if (touchRead(32) < 35) {\n    Serial.println("¡Toque detectado en Touch9!");\n  }\n  delay(100);\n}`, codeExplanation: { objective: "Detección táctil capacitiva.", breakdown: [{ fn: "touchRead(32)", desc: "Retorna capacitancia física." }], tips: "Calibra el umbral según el cable usado." } },
+      { id: "L9", side: "left", pinIndex: 9, silk: "D33", gpio: 33, title: "GPIO 33 / ADC1_5 / Touch8", tags: ["GPIO33", "ADC1_5", "Touch8", "RTCIO8", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "buttons_inputs", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro para Uso General", safetyText: "Sin problemas de arranque, soporta PWM y Touch.", components: ["<strong>Servomotores (SG90):</strong> Control de posición por PWM.", "<strong>Módulos Relé:</strong> Conmutación."], wiringTip: "Máx 12-20mA de corriente.", code: `void setup() {\n  pinMode(33, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(33, HIGH);\n  delay(500);\n  digitalWrite(33, LOW);\n  delay(500);\n}`, codeExplanation: { objective: "Conmutación periódica de actuador.", breakdown: [{ fn: "digitalWrite(33, HIGH)", desc: "Aplica 3.3V al pin." }], tips: "Siempre coloca resistencia limitadora en LEDs." } },
+      { id: "L8", side: "left", pinIndex: 8, silk: "D25", gpio: 25, title: "GPIO 25 / DAC1 / ADC2_8", tags: ["GPIO25", "DAC1", "ADC2_8", "RTCIO6", "Audio", "PWM"], featureTypes: ["RTCIO", "DAC", "ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "buttons_inputs", "dac_output", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro (Salida DAC Real)", safetyText: "Conversor Digital a Analógico por hardware real (8 bits: 0 a 255).", components: ["<strong>Audio analógico real:</strong> Hacia amplificador PAM8403.", "<strong>Generador de ondas puras:</strong> Voltaje continuo."], wiringTip: "El ADC2 se apaga con Wi-Fi, pero la salida DAC1 funciona siempre.", code: `void setup() {\n  dacWrite(25, 128); // ~1.65V continuos\n}\nvoid loop() {\n  for (int v = 0; v < 256; v++) {\n    dacWrite(25, v);\n    delayMicroseconds(100);\n  }\n}`, codeExplanation: { objective: "Generar voltaje analógico continuo puro.", breakdown: [{ fn: "dacWrite(25, 128)", desc: "Salida analógica real sin pulsos PWM." }], tips: "Usa capacitor desacoplador para altavoces." } },
+      { id: "L7", side: "left", pinIndex: 7, silk: "D26", gpio: 26, title: "GPIO 26 / DAC2 / ADC2_9", tags: ["GPIO26", "DAC2", "ADC2_9", "RTCIO7", "Audio", "PWM"], featureTypes: ["RTCIO", "DAC", "ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "buttons_inputs", "dac_output", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro (Salida DAC 2)", safetyText: "Segundo canal DAC real. Ideal para audio estéreo junto a GPIO25.", components: ["<strong>Canal Derecho Estéreo:</strong> Con DAC1 en GPIO25.", "<strong>Señal de referencia analógica.</strong>"], wiringTip: "Valores aceptados: 0 a 255.", code: `void setup() {}\nvoid loop() {\n  for (float d = 0; d < 360; d += 5) {\n    float r = d * (3.14159 / 180.0);\n    dacWrite(26, (sin(r) + 1.0) * 127.5);\n    delayMicroseconds(200);\n  }\n}`, codeExplanation: { objective: "Síntesis de onda senoidal matemática pura.", breakdown: [{ fn: "dacWrite(26, val)", desc: "Emite la onda sin escalones PWM." }], tips: "Solo GPIO25 y 26 poseen DAC en ESP32 clásico." } },
+      { id: "L6", side: "left", pinIndex: 6, silk: "D27", gpio: 27, title: "GPIO 27 / Touch7 / ADC2_7", tags: ["GPIO27", "Touch7", "ADC2_7", "RTCIO17", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "buttons_inputs", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch", "dot_i2c_rtc", "dot_adc"], safety: "safe", safetyTitle: "Pin Excelente para Uso General", safetyText: "Completamente seguro sin restricciones de boot.", components: ["<strong>Módulos Relé:</strong> Pin ideal sin rebotes.", "<strong>Sensores DHT11/DHT22:</strong> Bus 1-Wire."], wiringTip: "Inicia en nivel bajo en reposo sin glitches.", code: `void setup() {\n  pinMode(27, OUTPUT);\n  digitalWrite(27, LOW);\n}\nvoid loop() {\n  digitalWrite(27, HIGH);\n  delay(2000);\n  digitalWrite(27, LOW);\n  delay(2000);\n}`, codeExplanation: { objective: "Control estable de relé sin disparos al inicio.", breakdown: [{ fn: "digitalWrite(27, LOW)", desc: "Garantiza arranque apagado." }], tips: "GPIO27 es de los más seguros para relés de potencia." } },
+      { id: "L5", side: "left", pinIndex: 5, silk: "D14", gpio: 14, title: "GPIO 14 / ADC2_6 / Touch6", tags: ["GPIO14", "Touch6", "ADC2_6", "RTCIO16", "HSPI_CLK", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC2", "SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi", "dot_touch", "dot_i2c_rtc", "dot_adc"], safety: "safe", safetyTitle: "Pin Seguro para Uso General", safetyText: "Reloj HSPI secundario y pin digital limpio.", components: ["<strong>Tiras LED direccionables WS2812B:</strong> Datos DIN.", "<strong>Bus SPI secundario (Reloj CLK).</strong>"], wiringTip: "Breve señal durante reboot que suele ser inocua.", code: `void setup() {\n  ledcAttach(14, 5000, 8);\n}\nvoid loop() {\n  for (int d = 0; d <= 255; d++) { ledcWrite(14, d); delay(5); }\n  for (int d = 255; d >= 0; d--) { ledcWrite(14, d); delay(5); }\n}`, codeExplanation: { objective: "Desvanecimiento lumínico con temporizador LEDC.", breakdown: [{ fn: "ledcAttach()", desc: "Configura PWM a 5kHz 8 bits." }], tips: "Sintaxis moderna de ESP32 Core v3.x." } },
+      { id: "L4", side: "left", pinIndex: 4, silk: "D12", gpio: 12, title: "GPIO 12 / ADC2_5 / Touch5", tags: ["GPIO12", "Touch5", "ADC2_5", "Strapping", "HSPI_MISO", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC2", "SPI", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi", "dot_touch", "dot_i2c_rtc", "dot_adc"], safety: "warning", safetyTitle: "Strapping Pin (Precaución de Arranque)", safetyText: "Si se mantiene forzado en ALTO (3.3V) al encender, el voltaje de la memoria Flash fallará y no arrancará.", components: ["<strong>Línea MISO de SPI secundario.</strong>", "<strong>LEDs con resistencia a GND.</strong>"], wiringTip: "Debe estar en BAJO durante el arranque.", code: `void setup() {\n  pinMode(12, OUTPUT);\n  digitalWrite(12, LOW);\n}\nvoid loop() {\n  digitalWrite(12, HIGH);\n  delay(1000);\n  digitalWrite(12, LOW);\n  delay(1000);\n}`, codeExplanation: { objective: "Uso de GPIO12 tras superar el arranque del bootloader.", breakdown: [{ fn: "Pin MTDI", desc: "Define voltaje Flash al arrancar." }], tips: "No coloques pulsadores con pull-up a 3.3V aquí." } },
+      { id: "L3", side: "left", pinIndex: 3, silk: "D13", gpio: 13, title: "GPIO 13 / ADC2_4 / Touch4", tags: ["GPIO13", "Touch4", "ADC2_4", "RTCIO14", "HSPI_MOSI", "PWM"], featureTypes: ["RTCIO", "TOUCH", "ADC2", "SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi", "dot_touch", "dot_i2c_rtc", "dot_adc"], safety: "safe", safetyTitle: "Pin Seguro para Uso General", safetyText: "Línea MOSI de HSPI y sensor táctil 4.", components: ["<strong>Sensor PIR de presencia (HC-SR501).</strong>", "<strong>Relés de 5V por optoacoplador.</strong>"], wiringTip: "Seguro para INPUT y OUTPUT.", code: `void setup() {\n  Serial.begin(115200);\n  pinMode(13, INPUT);\n}\nvoid loop() {\n  if (digitalRead(13) == HIGH) Serial.println("Movimiento detectado");\n  delay(200);\n}`, codeExplanation: { objective: "Monitoreo digital de sensor infrarrojo pasivo.", breakdown: [{ fn: "digitalRead(13)", desc: "Lee estado lógico del PIR." }], tips: "La mayoría de sensores PIR entregan lógica a 3.3V." } },
+      { id: "L2", side: "left", pinIndex: 2, silk: "GND", gpio: null, title: "GND (Tierra / Masa Común)", tags: ["GND", "Power", "0V", "Tierra"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Referencia Eléctrica Común (0V)", safetyText: "Plano de masa común del circuito.", components: ["<strong>Cátodo de diodos LED.</strong>", "<strong>GND de sensores y fuentes externas.</strong>"], wiringTip: "Unifica masas con cualquier fuente externa.", code: `// Pin pasivo de masa (0V).`, codeExplanation: { objective: "Cerrar los circuitos eléctricos hacia masa.", breakdown: [{ fn: "0 Voltios", desc: "Punto de referencia común." }], tips: "Si un sensor falla, verifica haber unido su GND con el del ESP32." } },
+      { id: "L1", side: "left", pinIndex: 1, silk: "VIN", gpio: null, title: "VIN (Entrada 5V Externa / Salida USB)", tags: ["VIN", "5V", "Power", "USB VBUS"], featureTypes: ["POWER_VIN"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Riel de Alimentación de 5V", safetyText: "Alimenta el regulador AMS1117.", components: ["<strong>Fuente externa de 5V (o 6-9V máx).</strong>", "<strong>Alimentar bobinas de relé de 5V.</strong>"], wiringTip: "No superar los 12V.", code: `// Pin de potencia de 5V por hardware.`, codeExplanation: { objective: "Alimentación eléctrica del circuito.", breakdown: [{ fn: "AMS1117 Input", desc: "Regula 5V a 3.3V." }], tips: "Evita cargas de alta corriente directo del USB de la laptop." } },
+
+      // Right Column 30p
+      { id: "R15", side: "right", pinIndex: 15, silk: "D23", gpio: 23, title: "GPIO 23 / MOSI (VSPI)", tags: ["GPIO23", "MOSI", "VSPI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Pin Seguro (Línea MOSI de SPI)", safetyText: "Línea principal de transmisión de datos SPI.", components: ["<strong>Lector MicroSD:</strong> Pin MOSI.", "<strong>Pantallas TFT:</strong> SDA/MOSI."], wiringTip: "Transmisiones a alta velocidad.", code: `#include <SPI.h>\nvoid setup() {\n  SPI.begin();\n}`, codeExplanation: { objective: "Inicialización del bus maestro SPI.", breakdown: [{ fn: "SPI.begin()", desc: "Habilita GPIO23 (MOSI), 19 (MISO) y 18 (SCK)." }], tips: "Ideal para pantallas a color." } },
+      { id: "R14", side: "right", pinIndex: 14, silk: "D22", gpio: 22, title: "GPIO 22 / SCL (Bus I²C)", tags: ["GPIO22", "SCL", "I2C", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro (Reloj SCL de I²C)", safetyText: "Reloj sincrónico del bus I²C maestro.", components: ["<strong>Pantallas OLED SSD1306:</strong> SCL.", "<strong>Sensores BME280 / BMP280:</strong> SCL."], wiringTip: "Admite múltiples periféricos en paralelo.", code: `#include <Wire.h>\nvoid setup() {\n  Wire.begin();\n}`, codeExplanation: { objective: "Reloj para comunicación de sensores en paralelo.", breakdown: [{ fn: "Wire.begin()", desc: "SDA=21, SCL=22 a 100kHz." }], tips: "Usa Wire.setClock(400000) para acelerar OLEDs." } },
+      { id: "R13", side: "right", pinIndex: 13, silk: "TX0", gpio: 1, title: "GPIO 1 / TX0 (Monitor Serie USB)", tags: ["GPIO1", "TX0", "UART0", "USB"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Pin Reservado para Depuración USB", safetyText: "Conectado al chip CP2102 para el Monitor Serie.", components: ["<strong>Consola Serial de la PC.</strong>", "<strong>Evitar periféricos externos.</strong>"], wiringTip: "Usar solo para depuración.", code: `void setup() {\n  Serial.begin(115200);\n  Serial.println("Depuracion por USB");\n}`, codeExplanation: { objective: "Transmisión de texto y datos a la consola de la PC.", breakdown: [{ fn: "Serial.begin(115200)", desc: "Abre el puerto UART0 hacia el CP2102." }], tips: "No conectar sensores aquí." } },
+      { id: "R12", side: "right", pinIndex: 12, silk: "RX0", gpio: 3, title: "GPIO 3 / RX0 (Recepción Serie USB)", tags: ["GPIO3", "RX0", "UART0", "USB"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Pin Reservado para Flasheo USB", safetyText: "Línea por donde se sube el código desde la PC.", components: ["<strong>Recepción de datos por consola.</strong>"], wiringTip: "Mantener libre de componentes.", code: `void setup() { Serial.begin(115200); }\nvoid loop() {\n  if (Serial.available()) char c = Serial.read();\n}`, codeExplanation: { objective: "Recepción de órdenes desde el teclado de la PC.", breakdown: [{ fn: "Serial.read()", desc: "Lee bytes entrantes por el pin 3." }], tips: "Cargas externas aquí bloquearán la subida de código." } },
+      { id: "R11", side: "right", pinIndex: 11, silk: "D21", gpio: 21, title: "GPIO 21 / SDA (Bus I²C)", tags: ["GPIO21", "SDA", "I2C", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Pin Seguro (Datos SDA de I²C)", safetyText: "Línea bidireccional de datos I²C.", components: ["<strong>Displays OLED SSD1306:</strong> SDA.", "<strong>Sensores BH1750, AHT10.</strong>"], wiringTip: "Módulos ya suelen incluir pull-up.", code: `#include <Wire.h>\nvoid setup() {\n  Wire.begin(21, 22);\n}`, codeExplanation: { objective: "Canal bidireccional de tramas de datos I²C.", breakdown: [{ fn: "Wire.begin(21, 22)", desc: "Define SDA=21, SCL=22." }], tips: "Puedes conectar OLED y sensores en paralelo al pin 21." } },
+      { id: "R10", side: "right", pinIndex: 10, silk: "D19", gpio: 19, title: "GPIO 19 / MISO (VSPI)", tags: ["GPIO19", "MISO", "VSPI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Pin Seguro (Línea MISO de SPI)", safetyText: "Entrada de datos hacia el microcontrolador.", components: ["<strong>Lectura MicroSD:</strong> Pin MISO.", "<strong>Lector RFID RC522:</strong> Pin MISO."], wiringTip: "Sin restricciones de boot.", code: `void setup() {\n  pinMode(19, OUTPUT);\n  digitalWrite(19, HIGH);\n}`, codeExplanation: { objective: "Uso como GPIO libre o receptor SPI.", breakdown: [{ fn: "MISO", desc: "Master In Slave Out de alta velocidad." }], tips: "No afecta el arranque del chip." } },
+      { id: "R9", side: "right", pinIndex: 9, silk: "D18", gpio: 18, title: "GPIO 18 / SCK (VSPI)", tags: ["GPIO18", "SCK", "VSPI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Pin Seguro (Reloj SCK de SPI)", safetyText: "Reloj maestro del bus SPI.", components: ["<strong>Reloj para Memoria SD:</strong> SCK.", "<strong>PWM de Servos y Motores.</strong>"], wiringTip: "Usa cables menores a 20cm para SPI.", code: `void setup() {\n  ledcAttach(18, 20000, 8);\n  ledcWrite(18, 128);\n}`, codeExplanation: { objective: "Control PWM ultrasónico sin ruidos acústicos.", breakdown: [{ fn: "ledcAttach(18, 20000, 8)", desc: "Frecuencia de 20kHz." }], tips: "Ideal para motores con MOSFET." } },
+      { id: "R8", side: "right", pinIndex: 8, silk: "D5", gpio: 5, title: "GPIO 5 / CS (VSPI)", tags: ["GPIO5", "CS", "VSPI", "Strapping", "PWM"], featureTypes: ["SPI", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "warning", safetyTitle: "Strapping Pin (Precaución)", safetyText: "Forzar a nivel BAJO al encender puede alterar el boot.", components: ["<strong>Chip Select para MicroSD / TFT.</strong>", "<strong>Relés activos en nivel ALTO.</strong>"], wiringTip: "Emite un pulso leve al reiniciar.", code: `#include <SD.h>\nvoid setup() {\n  SD.begin(5);\n}`, codeExplanation: { objective: "Línea selectora de chip para periféricos SPI.", breakdown: [{ fn: "SD.begin(5)", desc: "Activa el esclavo SD." }], tips: "Añade capacitor de 100µF en la alimentación de la SD." } },
+      { id: "R7", side: "right", pinIndex: 7, silk: "TX2", gpio: 17, title: "GPIO 17 / TX2 (UART 2)", tags: ["GPIO17", "TX2", "UART2", "Serial", "PWM"], featureTypes: ["UART", "PWM"], isPWM: true, isDigital: true, isSerial: true, categories: ["leds_relays", "buttons_inputs", "bus_uart", "serial_ports", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_uart"], safety: "safe", safetyTitle: "Pin Seguro (Transmisor UART2)", safetyText: "Puerto serie secundario libre.", components: ["<strong>Módulo GPS Neo-6M.</strong>", "<strong>Bluetooth HC-05.</strong>"], wiringTip: "El TX del ESP32 va al RX del dispositivo.", code: `HardwareSerial SerialGPS(2);\nvoid setup() {\n  SerialGPS.begin(9600, SERIAL_8N1, 16, 17);\n}`, codeExplanation: { objective: "Segundo puerto serie independiente por hardware.", breakdown: [{ fn: "HardwareSerial(2)", desc: "Usa controlador UART2 nativo." }], tips: "No requiere SoftwareSerial." } },
+      { id: "R6", side: "right", pinIndex: 6, silk: "RX2", gpio: 16, title: "GPIO 16 / RX2 (UART 2)", tags: ["GPIO16", "RX2", "UART2", "Serial", "PWM"], featureTypes: ["UART", "PWM"], isPWM: true, isDigital: true, isSerial: true, categories: ["leds_relays", "buttons_inputs", "bus_uart", "serial_ports", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_uart"], safety: "safe", safetyTitle: "Pin Seguro (Receptor UART2)", safetyText: "Receptor del puerto serie secundario.", components: ["<strong>Recepción GPS (pin TX de GPS).</strong>", "<strong>Lectores de Código de Barras.</strong>"], wiringTip: "Usa divisor si el periférico entrega 5V.", code: `HardwareSerial SerialGPS(2);\nvoid setup() {\n  SerialGPS.begin(9600, SERIAL_8N1, 16, 17);\n}\nvoid loop() {\n  while (SerialGPS.available()) Serial.write(SerialGPS.read());\n}`, codeExplanation: { objective: "Recepción continua de tramas asíncronas externas.", breakdown: [{ fn: "SerialGPS.read()", desc: "Lee bytes entrantes por el pin 16." }], tips: "Recuerda la conexión cruzada TX->RX y RX->TX." } },
+      { id: "R5", side: "right", pinIndex: 5, silk: "D4", gpio: 4, title: "GPIO 4 / ADC2_0 / Touch0", tags: ["GPIO4", "Touch0", "ADC2_0", "PWM"], featureTypes: ["TOUCH", "ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch", "dot_adc"], safety: "safe", safetyTitle: "Pin Seguro para Uso General", safetyText: "Soporta sensor táctil 0, PWM y pull-up interna.", components: ["<strong>Módulos de Relé.</strong>", "<strong>Botón con INPUT_PULLUP.</strong>", "<strong>Sensor DS18B20.</strong>"], wiringTip: "Recomendado para salidas digitales.", code: `void setup() {\n  pinMode(4, INPUT_PULLUP);\n}\nvoid loop() {\n  if (digitalRead(4) == LOW) Serial.println("Boton pulsado");\n  delay(200);\n}`, codeExplanation: { objective: "Pulsador sin resistencias externas con INPUT_PULLUP.", breakdown: [{ fn: "INPUT_PULLUP", desc: "Activa resistencia interna a 3.3V." }], tips: "delay(200) filtra rebotes mecánicos." } },
+      { id: "R4", side: "right", pinIndex: 4, silk: "D2", gpio: 2, title: "GPIO 2 / LED Integrado / Touch2", tags: ["GPIO2", "Touch2", "ADC2_2", "LED_BUILTIN", "Strapping", "PWM"], featureTypes: ["TOUCH", "ADC2", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch", "dot_adc"], safety: "warning", safetyTitle: "Strapping Pin (Conectado a LED Azul)", safetyText: "Soldado al LED azul integrado. Debe estar flotante o en BAJO al encender para permitir programación.", components: ["<strong>LED Integrado (Blink):</strong> Pruebas rápidas.", "<strong>Sensor Táctil 2.</strong>"], wiringTip: "Equivale a LED_BUILTIN.", code: `void setup() {\n  pinMode(2, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(2, HIGH); delay(300);\n  digitalWrite(2, LOW); delay(300);\n}`, codeExplanation: { objective: "Prueba visual de funcionamiento con el LED azul de la placa.", breakdown: [{ fn: "GPIO 2", desc: "Conectado al LED SMD onboard." }], tips: "Si se fuerza a 3.3V al arrancar no entrará en modo flash." } },
+      { id: "R3", side: "right", pinIndex: 3, silk: "D15", gpio: 15, title: "GPIO 15 / ADC2_3 / Touch3", tags: ["GPIO15", "Touch3", "ADC2_3", "Strapping", "PWM"], featureTypes: ["TOUCH", "ADC2", "SPI", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "buttons_inputs", "bus_spi", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi", "dot_touch", "dot_adc"], safety: "warning", safetyTitle: "Strapping Pin (Debug Silencioso)", safetyText: "Si está en BAJO al encender, silencia la salida de debug de arranque de la ROM.", components: ["<strong>Chip Select SPI.</strong>", "<strong>Sensor Táctil 3.</strong>"], wiringTip: "Evitar botones a tierra que queden apretados al encender.", code: `void setup() { Serial.begin(115200); }\nvoid loop() {\n  Serial.printf("Touch 3: %d\\n", touchRead(15));\n  delay(300);\n}`, codeExplanation: { objective: "Sensor táctil capacitivo en GPIO15.", breakdown: [{ fn: "touchRead(15)", desc: "Mide capacitancia del pin." }], tips: "Conectar LED con resistencia a GND para evitar forzado." } },
+      { id: "R2", side: "right", pinIndex: 2, silk: "GND", gpio: null, title: "GND (Tierra / Masa Derecha)", tags: ["GND", "Power", "0V", "Tierra"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa Común (0V)", safetyText: "Unido internamente con el GND del lado izquierdo.", components: ["<strong>GND de periféricos I2C y sensores.</strong>"], wiringTip: "Eléctricamente idéntico a todos los pines GND.", code: `// Pin pasivo de masa (0V).`, codeExplanation: { objective: "Referencia de retorno de corriente.", breakdown: [{ fn: "GND", desc: "0 Voltios." }], tips: "Comparte masa con el resto de la placa." } },
+      { id: "R1", side: "right", pinIndex: 1, silk: "3V3", gpio: null, title: "3V3 / VCC (Salida de 3.3V Regulada)", tags: ["VCC", "3V3", "Power", "Regulador"], featureTypes: ["POWER_3V3"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Riel Regulado de 3.3V", safetyText: "Alimentación de 3.3V estabilizada para módulos y SoC.", components: ["<strong>VCC de Sensores I2C y OLEDs.</strong>", "<strong>Extremo de potenciómetros (3.3V).</strong>"], wiringTip: "¡NUNCA aplicar 5V aquí! Máx 500-600mA.", code: `// Salida de alimentacion de 3.3V por hardware.`, codeExplanation: { objective: "Energizar chips y periféricos de 3.3V.", breakdown: [{ fn: "AMS1117-3.3", desc: "Regulador LDO." }], tips: "No conectar motores directamente a este pin." } }
+    ];
+
+    /* 38-Pin DevKitC V4 Database (19 left, 19 right) */
+    const BASE_PINS_38 = [
+      { id: "L19", side: "left", pinIndex: 19, silk: "3V3", gpio: null, title: "3V3 (Salida Regulada 3.3V)", tags: ["3V3", "Power"], featureTypes: ["POWER_3V3"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Riel 3.3V", safetyText: "Alimentación estable para sensores.", components: ["Sensores 3.3V"], wiringTip: "Máx 500mA", code: `// Riel de alimentacion 3.3V`, codeExplanation: { objective: "Alimentación", breakdown: [], tips: "" } },
+      { id: "L18", side: "left", pinIndex: 18, silk: "EN", gpio: null, title: "EN (Reset Chip Enable)", tags: ["EN", "Reset"], featureTypes: ["ENABLE"], isPWM: false, isDigital: false, isSerial: false, categories: ["buttons_inputs"], dotTypes: [], safety: "warning", safetyTitle: "Reset", safetyText: "Pulso a masa resetea.", components: ["Pulsador Reset"], wiringTip: "Pullup interno", code: `// Reset`, codeExplanation: { objective: "Reset", breakdown: [], tips: "" } },
+      { id: "L17", side: "left", pinIndex: 17, silk: "VP", gpio: 36, title: "GPIO 36 / SVP / ADC1_0", tags: ["GPIO36", "ADC1_0", "Input-Only"], featureTypes: ["ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc"], dotTypes: ["dot_adc"], safety: "input-only", safetyTitle: "Solo Entrada", safetyText: "ADC1 libre de Wi-Fi.", components: ["Potenciómetros 10k"], wiringTip: "0-3.3V", code: `void setup() { analogReadResolution(12); }`, codeExplanation: { objective: "Lectura ADC", breakdown: [], tips: "" } },
+      { id: "L16", side: "left", pinIndex: 16, silk: "VN", gpio: 39, title: "GPIO 39 / SVN / ADC1_3", tags: ["GPIO39", "ADC1_3", "Input-Only"], featureTypes: ["ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc"], dotTypes: ["dot_adc"], safety: "input-only", safetyTitle: "Solo Entrada", safetyText: "ADC1 libre de Wi-Fi.", components: ["Sensores analógicos"], wiringTip: "0-3.3V", code: `void loop() { analogRead(39); }`, codeExplanation: { objective: "Lectura ADC", breakdown: [], tips: "" } },
+      { id: "L15", side: "left", pinIndex: 15, silk: "D34", gpio: 34, title: "GPIO 34 / ADC1_6", tags: ["GPIO34", "ADC1_6", "Input-Only"], featureTypes: ["ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc"], dotTypes: ["dot_adc"], safety: "input-only", safetyTitle: "Solo Entrada", safetyText: "Sin transistores de salida.", components: ["LDR con divisor"], wiringTip: "Requiere pull externo", code: `void setup() { pinMode(34, INPUT); }`, codeExplanation: { objective: "Lectura", breakdown: [], tips: "" } },
+      { id: "L14", side: "left", pinIndex: 14, silk: "D35", gpio: 35, title: "GPIO 35 / ADC1_7", tags: ["GPIO35", "ADC1_7", "Input-Only"], featureTypes: ["ADC1", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["pots_adc"], dotTypes: ["dot_adc"], safety: "input-only", safetyTitle: "Solo Entrada", safetyText: "Lectura analógica.", components: ["Sensor gas MQ"], wiringTip: "0-3.3V", code: `void loop() { analogRead(35); }`, codeExplanation: { objective: "Lectura", breakdown: [], tips: "" } },
+      { id: "L13", side: "left", pinIndex: 13, silk: "D32", gpio: 32, title: "GPIO 32 / ADC1_4 / Touch9", tags: ["GPIO32", "ADC1_4", "PWM"], featureTypes: ["ADC1", "TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "Uso general.", components: ["LEDs", "Relés"], wiringTip: "Resistencia 220Ω", code: `void setup() { pinMode(32, OUTPUT); }`, codeExplanation: { objective: "Salida", breakdown: [], tips: "" } },
+      { id: "L12", side: "left", pinIndex: 12, silk: "D33", gpio: 33, title: "GPIO 33 / ADC1_5 / Touch8", tags: ["GPIO33", "ADC1_5", "PWM"], featureTypes: ["ADC1", "TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pots_adc", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "Uso general.", components: ["Servos"], wiringTip: "PWM LEDC", code: `void setup() { pinMode(33, OUTPUT); }`, codeExplanation: { objective: "Salida", breakdown: [], tips: "" } },
+      { id: "L11", side: "left", pinIndex: 11, silk: "D25", gpio: 25, title: "GPIO 25 / DAC1 / ADC2_8", tags: ["GPIO25", "DAC1", "PWM"], featureTypes: ["DAC", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["dac_output", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Salida DAC Real", safetyText: "Conversor D/A de 8 bits.", components: ["Audio con PAM8403"], wiringTip: "dacWrite(25, val)", code: `void setup() { dacWrite(25, 128); }`, codeExplanation: { objective: "Audio", breakdown: [], tips: "" } },
+      { id: "L10", side: "left", pinIndex: 10, silk: "D26", gpio: 26, title: "GPIO 26 / DAC2 / ADC2_9", tags: ["GPIO26", "DAC2", "PWM"], featureTypes: ["DAC", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["dac_output", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Salida DAC 2", safetyText: "Segundo canal DAC.", components: ["Audio estéreo"], wiringTip: "0 a 255", code: `void setup() { dacWrite(26, 128); }`, codeExplanation: { objective: "Audio", breakdown: [], tips: "" } },
+      { id: "L9", side: "left", pinIndex: 9, silk: "D27", gpio: 27, title: "GPIO 27 / Touch7", tags: ["GPIO27", "PWM"], featureTypes: ["TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "Excelente para relés.", components: ["Relé optoacoplado"], wiringTip: "Arranque en bajo", code: `void setup() { pinMode(27, OUTPUT); }`, codeExplanation: { objective: "Relé", breakdown: [], tips: "" } },
+      { id: "L8", side: "left", pinIndex: 8, silk: "D14", gpio: 14, title: "GPIO 14 / HSPI_CLK", tags: ["GPIO14", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro", safetyText: "Reloj SPI secundario.", components: ["Display SPI"], wiringTip: "Hasta 40MHz", code: `void setup() {}`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "L7", side: "left", pinIndex: 7, silk: "D12", gpio: 12, title: "GPIO 12 / Strapping", tags: ["GPIO12", "Strapping"], featureTypes: ["STRAPPING", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Strapping Pin", safetyText: "No forzar en ALTO al boot.", components: ["LED a GND"], wiringTip: "Bajo en boot", code: `void setup() { pinMode(12, OUTPUT); }`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "L6", side: "left", pinIndex: 6, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "Masa común.", components: ["GND común"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "L5", side: "left", pinIndex: 5, silk: "D13", gpio: 13, title: "GPIO 13 / Touch4", tags: ["GPIO13", "PWM"], featureTypes: ["TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "GPIO libre.", components: ["Sensor PIR"], wiringTip: "3.3V", code: `void setup() { pinMode(13, INPUT); }`, codeExplanation: { objective: "Digital", breakdown: [], tips: "" } },
+      { id: "L4", side: "left", pinIndex: 4, silk: "D9", gpio: 9, title: "GPIO 9 / SD2 (¡FLASH SPI!)", tags: ["GPIO9", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash SPI)", safetyText: "Conectado al silicio de la memoria Flash SPI.", components: ["NINGUNO. Dejar libre."], wiringTip: "Si lo conectas colapsa el ESP32.", code: `// NO USAR ESTE PIN`, codeExplanation: { objective: "Peligro Flash", breakdown: [], tips: "" } },
+      { id: "L3", side: "left", pinIndex: 3, silk: "D10", gpio: 10, title: "GPIO 10 / SD3 (¡FLASH SPI!)", tags: ["GPIO10", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash SPI)", safetyText: "Conectado a la memoria Flash interna.", components: ["NINGUNO. Dejar libre."], wiringTip: "No tocar.", code: `// NO USAR ESTE PIN`, codeExplanation: { objective: "Peligro Flash", breakdown: [], tips: "" } },
+      { id: "L2", side: "left", pinIndex: 2, silk: "D11", gpio: 11, title: "GPIO 11 / CMD (¡FLASH SPI!)", tags: ["GPIO11", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash SPI)", safetyText: "Línea de comando Flash.", components: ["NINGUNO. Dejar libre."], wiringTip: "No tocar.", code: `// NO USAR ESTE PIN`, codeExplanation: { objective: "Peligro Flash", breakdown: [], tips: "" } },
+      { id: "L1", side: "left", pinIndex: 1, silk: "VIN", gpio: null, title: "5V / VIN (Entrada 5V)", tags: ["5V", "VIN", "Power"], featureTypes: ["POWER_VIN"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Alimentación 5V", safetyText: "Entrada 5V.", components: ["Fuente externa 5V"], wiringTip: "5V máx 1A", code: `// Alimentacion 5V`, codeExplanation: { objective: "Potencia", breakdown: [], tips: "" } },
+
+      // Right 38p
+      { id: "R19", side: "right", pinIndex: 19, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "R18", side: "right", pinIndex: 18, silk: "D23", gpio: 23, title: "GPIO 23 / VSPI_MOSI", tags: ["GPIO23", "MOSI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI MOSI)", safetyText: "Datos maestro SPI.", components: ["MicroSD", "TFT"], wiringTip: "Alta velocidad", code: `#include <SPI.h>`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "R17", side: "right", pinIndex: 17, silk: "D22", gpio: 22, title: "GPIO 22 / I2C_SCL", tags: ["GPIO22", "SCL", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Seguro (I2C SCL)", safetyText: "Reloj bus I2C.", components: ["OLED SSD1306", "BME280"], wiringTip: "Bus paralelo", code: `#include <Wire.h>`, codeExplanation: { objective: "I2C", breakdown: [], tips: "" } },
+      { id: "R16", side: "right", pinIndex: 16, silk: "TX0", gpio: 1, title: "GPIO 1 / TX0 (USB UART)", tags: ["GPIO1", "TX0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Consola USB", safetyText: "Conectado al CP2102.", components: ["Monitor serie PC"], wiringTip: "No usar periféricos", code: `Serial.begin(115200);`, codeExplanation: { objective: "Debug", breakdown: [], tips: "" } },
+      { id: "R15", side: "right", pinIndex: 15, silk: "RX0", gpio: 3, title: "GPIO 3 / RX0 (USB UART)", tags: ["GPIO3", "RX0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Carga USB", safetyText: "Recepción de código.", components: ["Consola"], wiringTip: "Mantener libre", code: `Serial.read();`, codeExplanation: { objective: "Debug", breakdown: [], tips: "" } },
+      { id: "R14", side: "right", pinIndex: 14, silk: "D21", gpio: 21, title: "GPIO 21 / I2C_SDA", tags: ["GPIO21", "SDA", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Seguro (I2C SDA)", safetyText: "Datos bus I2C.", components: ["OLED", "Sensores I2C"], wiringTip: "3.3V", code: `Wire.begin(21, 22);`, codeExplanation: { objective: "I2C", breakdown: [], tips: "" } },
+      { id: "R13", side: "right", pinIndex: 13, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "R12", side: "right", pinIndex: 12, silk: "D19", gpio: 19, title: "GPIO 19 / VSPI_MISO", tags: ["GPIO19", "MISO", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI MISO)", safetyText: "Entrada maestro SPI.", components: ["MicroSD", "RFID"], wiringTip: "Sin strapping", code: `void setup() {}`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "R11", side: "right", pinIndex: 11, silk: "D18", gpio: 18, title: "GPIO 18 / VSPI_SCK", tags: ["GPIO18", "SCK", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI SCK)", safetyText: "Reloj maestro SPI.", components: ["Reloj SPI", "PWM"], wiringTip: "3.3V", code: `ledcAttach(18, 5000, 8);`, codeExplanation: { objective: "PWM", breakdown: [], tips: "" } },
+      { id: "R10", side: "right", pinIndex: 10, silk: "D5", gpio: 5, title: "GPIO 5 / VSPI_CS", tags: ["GPIO5", "CS", "PWM"], featureTypes: ["SPI", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "warning", safetyTitle: "Strapping Pin", safetyText: "Chip select SPI.", components: ["CS SD Card"], wiringTip: "Pulso en boot", code: `SD.begin(5);`, codeExplanation: { objective: "SD", breakdown: [], tips: "" } },
+      { id: "R9", side: "right", pinIndex: 9, silk: "TX2", gpio: 17, title: "GPIO 17 / UART2_TX", tags: ["GPIO17", "TX2", "PWM"], featureTypes: ["UART", "PWM"], isPWM: true, isDigital: true, isSerial: true, categories: ["bus_uart", "serial_ports", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_uart"], safety: "safe", safetyTitle: "Seguro (UART2 TX)", safetyText: "Transmisor serie 2.", components: ["GPS Neo-6M"], wiringTip: "Hacia RX de dispositivo", code: `HardwareSerial SerialGPS(2);`, codeExplanation: { objective: "UART", breakdown: [], tips: "" } },
+      { id: "R8", side: "right", pinIndex: 8, silk: "RX2", gpio: 16, title: "GPIO 16 / UART2_RX", tags: ["GPIO16", "RX2", "PWM"], featureTypes: ["UART", "PWM"], isPWM: true, isDigital: true, isSerial: true, categories: ["bus_uart", "serial_ports", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_uart"], safety: "safe", safetyTitle: "Seguro (UART2 RX)", safetyText: "Receptor serie 2.", components: ["GPS RX"], wiringTip: "Desde TX de dispositivo", code: `SerialGPS.begin(9600, SERIAL_8N1, 16, 17);`, codeExplanation: { objective: "UART", breakdown: [], tips: "" } },
+      { id: "R7", side: "right", pinIndex: 7, silk: "D4", gpio: 4, title: "GPIO 4 / Touch0", tags: ["GPIO4", "Touch0", "PWM"], featureTypes: ["TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "Salida o Touch.", components: ["Relé", "Botón pullup"], wiringTip: "INPUT_PULLUP", code: `pinMode(4, INPUT_PULLUP);`, codeExplanation: { objective: "Botón", breakdown: [], tips: "" } },
+      { id: "R6", side: "right", pinIndex: 6, silk: "D2", gpio: 2, title: "GPIO 2 / LED Azul", tags: ["GPIO2", "LED_BUILTIN", "Strapping", "PWM"], featureTypes: ["TOUCH", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Strapping Pin", safetyText: "LED azul integrado.", components: ["LED integrado"], wiringTip: "Bajo en boot", code: `digitalWrite(2, HIGH);`, codeExplanation: { objective: "Blink", breakdown: [], tips: "" } },
+      { id: "R5", side: "right", pinIndex: 5, silk: "D15", gpio: 15, title: "GPIO 15 / Touch3", tags: ["GPIO15", "Touch3", "PWM"], featureTypes: ["TOUCH", "PWM", "STRAPPING"], isPWM: true, isDigital: true, isSerial: false, categories: ["touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch"], safety: "warning", safetyTitle: "Strapping Pin", safetyText: "Silencia debug ROM.", components: ["Touch 3"], wiringTip: "Resistencia pull-down", code: `touchRead(15);`, codeExplanation: { objective: "Touch", breakdown: [], tips: "" } },
+      { id: "R4", side: "right", pinIndex: 4, silk: "D8", gpio: 8, title: "GPIO 8 / SD1 (¡FLASH SPI!)", tags: ["GPIO8", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash)", safetyText: "Línea interna Flash SPI.", components: ["NINGUNO"], wiringTip: "No conectar", code: `// NO USAR`, codeExplanation: { objective: "Peligro", breakdown: [], tips: "" } },
+      { id: "R3", side: "right", pinIndex: 3, silk: "D7", gpio: 7, title: "GPIO 7 / SD0 (¡FLASH SPI!)", tags: ["GPIO7", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash)", safetyText: "Línea interna Flash SPI.", components: ["NINGUNO"], wiringTip: "No conectar", code: `// NO USAR`, codeExplanation: { objective: "Peligro", breakdown: [], tips: "" } },
+      { id: "R2", side: "right", pinIndex: 2, silk: "D6", gpio: 6, title: "GPIO 6 / CLK (¡FLASH SPI!)", tags: ["GPIO6", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash)", safetyText: "Reloj Flash SPI interno.", components: ["NINGUNO"], wiringTip: "No conectar", code: `// NO USAR`, codeExplanation: { objective: "Peligro", breakdown: [], tips: "" } },
+      { id: "R1", side: "right", pinIndex: 1, silk: "CMD", gpio: 11, title: "CMD / SD_CMD (¡FLASH SPI!)", tags: ["CMD", "FLASH", "DANGER"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "danger", safetyTitle: "¡PROHIBIDO USAR! (Flash)", safetyText: "Comando Flash SPI interno.", components: ["NINGUNO"], wiringTip: "No conectar", code: `// NO USAR`, codeExplanation: { objective: "Peligro", breakdown: [], tips: "" } }
+    ];
+
+    /* 44-Pin S3-DevKitC-1 Database (22 left, 22 right) */
+    const BASE_PINS_S3 = [
+      { id: "L22", side: "left", pinIndex: 22, silk: "3V3", gpio: null, title: "3V3 (Salida Regulada)", tags: ["3V3", "Power"], featureTypes: ["POWER_3V3"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Riel 3.3V", safetyText: "Alimentación estable.", components: ["Sensores"], wiringTip: "3.3V", code: `// 3.3V`, codeExplanation: { objective: "Power", breakdown: [], tips: "" } },
+      { id: "L21", side: "left", pinIndex: 21, silk: "EN", gpio: null, title: "EN (Reset)", tags: ["EN"], featureTypes: ["ENABLE"], isPWM: false, isDigital: false, isSerial: false, categories: ["buttons_inputs"], dotTypes: [], safety: "warning", safetyTitle: "Reset", safetyText: "Reset del SoC S3.", components: ["Pulsador"], wiringTip: "Pullup", code: `// Reset`, codeExplanation: { objective: "Reset", breakdown: [], tips: "" } },
+      { id: "L20", side: "left", pinIndex: 20, silk: "IO4", gpio: 4, title: "GPIO 4 / ADC1_3", tags: ["GPIO4", "ADC1_3", "Touch4", "PWM"], featureTypes: ["ADC1", "TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["Potenciómetro"], wiringTip: "0-3.3V", code: `analogRead(4);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "L19", side: "left", pinIndex: 19, silk: "IO5", gpio: 5, title: "GPIO 5 / ADC1_4", tags: ["GPIO5", "ADC1_4", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["Sensores"], wiringTip: "0-3.3V", code: `analogRead(5);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "L18", side: "left", pinIndex: 18, silk: "IO6", gpio: 6, title: "GPIO 6 / ADC1_5", tags: ["GPIO6", "ADC1_5", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["LDR"], wiringTip: "0-3.3V", code: `analogRead(6);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "L17", side: "left", pinIndex: 17, silk: "IO7", gpio: 7, title: "GPIO 7 / ADC1_6", tags: ["GPIO7", "ADC1_6", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["Sensores"], wiringTip: "0-3.3V", code: `analogRead(7);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "L16", side: "left", pinIndex: 16, silk: "IO15", gpio: 15, title: "GPIO 15 / ADC2_4", tags: ["GPIO15", "ADC2_4", "PWM"], featureTypes: ["ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro", safetyText: "Salida o PWM.", components: ["LEDs", "Relés"], wiringTip: "3.3V", code: `pinMode(15, OUTPUT);`, codeExplanation: { objective: "Salida", breakdown: [], tips: "" } },
+      { id: "L15", side: "left", pinIndex: 15, silk: "IO16", gpio: 16, title: "GPIO 16 / ADC2_5", tags: ["GPIO16", "PWM"], featureTypes: ["ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "Salida digital.", components: ["Relé"], wiringTip: "3.3V", code: `digitalWrite(16, HIGH);`, codeExplanation: { objective: "Salida", breakdown: [], tips: "" } },
+      { id: "L14", side: "left", pinIndex: 14, silk: "IO17", gpio: 17, title: "GPIO 17 / ADC2_6", tags: ["GPIO17", "PWM"], featureTypes: ["ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "Salida digital.", components: ["Buzzer"], wiringTip: "3.3V", code: `tone(17, 1000);`, codeExplanation: { objective: "Audio", breakdown: [], tips: "" } },
+      { id: "L13", side: "left", pinIndex: 13, silk: "IO18", gpio: 18, title: "GPIO 18 / ADC2_7", tags: ["GPIO18", "PWM"], featureTypes: ["ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "PWM LEDC.", components: ["Servo"], wiringTip: "50Hz", code: `ledcAttach(18, 50, 14);`, codeExplanation: { objective: "Servo", breakdown: [], tips: "" } },
+      { id: "L12", side: "left", pinIndex: 12, silk: "IO8", gpio: 8, title: "GPIO 8 / Bus I2C SDA", tags: ["GPIO8", "SDA", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "I2C SDA (S3)", safetyText: "Datos I2C predeterminado en S3.", components: ["OLED SSD1306"], wiringTip: "Wire.begin(8, 9)", code: `Wire.begin(8, 9);`, codeExplanation: { objective: "I2C", breakdown: [], tips: "" } },
+      { id: "L11", side: "left", pinIndex: 11, silk: "IO9", gpio: 9, title: "GPIO 9 / Bus I2C SCL", tags: ["GPIO9", "SCL", "PWM"], featureTypes: ["I2C", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "I2C SCL (S3)", safetyText: "Reloj I2C predeterminado en S3.", components: ["BME280"], wiringTip: "Wire.begin(8, 9)", code: `Wire.begin(8, 9);`, codeExplanation: { objective: "I2C", breakdown: [], tips: "" } },
+      { id: "L10", side: "left", pinIndex: 10, silk: "IO10", gpio: 10, title: "GPIO 10 / SPI CS", tags: ["GPIO10", "SPI_CS", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "SPI Chip Select", safetyText: "Línea CS.", components: ["Display ST7789"], wiringTip: "3.3V", code: `digitalWrite(10, LOW);`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "L9", side: "left", pinIndex: 9, silk: "IO11", gpio: 11, title: "GPIO 11 / SPI MOSI", tags: ["GPIO11", "SPI_MOSI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "SPI MOSI (S3)", safetyText: "Datos maestro S3.", components: ["TFT", "MicroSD"], wiringTip: "Alta velocidad", code: `SPI.begin(12, 13, 11, 10);`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "L8", side: "left", pinIndex: 8, silk: "IO12", gpio: 12, title: "GPIO 12 / SPI SCK", tags: ["GPIO12", "SPI_SCK", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "SPI Reloj (S3)", safetyText: "Reloj maestro SPI en S3.", components: ["Reloj SPI"], wiringTip: "Hasta 80MHz", code: `SPI.begin();`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "L7", side: "left", pinIndex: 7, silk: "IO13", gpio: 13, title: "GPIO 13 / SPI MISO", tags: ["GPIO13", "SPI_MISO", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "SPI MISO (S3)", safetyText: "Entrada maestro SPI en S3.", components: ["Lectura MicroSD"], wiringTip: "3.3V", code: `SPI.transfer(0x00);`, codeExplanation: { objective: "SPI", breakdown: [], tips: "" } },
+      { id: "L6", side: "left", pinIndex: 6, silk: "IO14", gpio: 14, title: "GPIO 14 / Touch14", tags: ["GPIO14", "Touch14", "PWM"], featureTypes: ["TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "Sensor táctil capacitivo 14.", components: ["Touch pad"], wiringTip: "touchRead(14)", code: `touchRead(14);`, codeExplanation: { objective: "Touch", breakdown: [], tips: "" } },
+      { id: "L5", side: "left", pinIndex: 5, silk: "IO47", gpio: 47, title: "GPIO 47 / High Speed IO", tags: ["GPIO47", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "E/S de alta velocidad.", components: ["Cámara DVP", "LEDs"], wiringTip: "3.3V", code: `pinMode(47, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "L4", side: "left", pinIndex: 4, silk: "IO48", gpio: 48, title: "GPIO 48 / LED RGB WS2812", tags: ["GPIO48", "WS2812", "RGB_LED"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "LED RGB Onboard", safetyText: "Conectado al LED direccionable WS2812B de la placa.", components: ["LED RGB integrado", "Tira NeoPixel"], wiringTip: "Librería NeoPixel o FastLED", code: `#include <Adafruit_NeoPixel.h>\nAdafruit_NeoPixel rgb(1, 48, NEO_GRB + NEO_KHZ800);`, codeExplanation: { objective: "Control LED RGB onboard", breakdown: [], tips: "" } },
+      { id: "L3", side: "left", pinIndex: 3, silk: "IO21", gpio: 21, title: "GPIO 21 / Camera XCLK", tags: ["GPIO21", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "Reloj maestro de cámara.", components: ["Cámara OV2640"], wiringTip: "Alta frecuencia", code: `pinMode(21, OUTPUT);`, codeExplanation: { objective: "Cámara", breakdown: [], tips: "" } },
+      { id: "L2", side: "left", pinIndex: 2, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "L1", side: "left", pinIndex: 1, silk: "5V", gpio: null, title: "5V / VBUS (Alimentación USB)", tags: ["5V", "VBUS", "Power"], featureTypes: ["POWER_VIN"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Alimentación 5V", safetyText: "Alimentación desde USB.", components: ["5V externo"], wiringTip: "5V máx 1.5A", code: `// 5V USB`, codeExplanation: { objective: "Potencia", breakdown: [], tips: "" } },
+
+      // Right 44p S3
+      { id: "R22", side: "right", pinIndex: 22, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "R21", side: "right", pinIndex: 21, silk: "TX", gpio: 43, title: "GPIO 43 / U0TXD", tags: ["GPIO43", "TX0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Consola Serial UART0", safetyText: "Conectado al chip puente USB-UART.", components: ["Monitor serie PC"], wiringTip: "Debug", code: `Serial.begin(115200);`, codeExplanation: { objective: "Consola", breakdown: [], tips: "" } },
+      { id: "R20", side: "right", pinIndex: 20, silk: "RX", gpio: 44, title: "GPIO 44 / U0RXD", tags: ["GPIO44", "RX0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "danger", safetyTitle: "Flasheo Serial UART0", safetyText: "Entrada serie de bootloader.", components: ["Consola"], wiringTip: "Mantener libre", code: `Serial.read();`, codeExplanation: { objective: "Consola", breakdown: [], tips: "" } },
+      { id: "R19", side: "right", pinIndex: 19, silk: "IO1", gpio: 1, title: "GPIO 1 / ADC1_0", tags: ["GPIO1", "ADC1_0", "Touch1", "PWM"], featureTypes: ["ADC1", "TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["Potenciómetro"], wiringTip: "0-3.3V", code: `analogRead(1);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "R18", side: "right", pinIndex: 18, silk: "IO2", gpio: 2, title: "GPIO 2 / ADC1_1", tags: ["GPIO2", "ADC1_1", "Touch2", "PWM"], featureTypes: ["ADC1", "TOUCH", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "touch_sensor", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc", "dot_touch"], safety: "safe", safetyTitle: "Seguro", safetyText: "ADC1 libre.", components: ["Sensores"], wiringTip: "0-3.3V", code: `analogRead(2);`, codeExplanation: { objective: "ADC", breakdown: [], tips: "" } },
+      { id: "R17", side: "right", pinIndex: 17, silk: "IO42", gpio: 42, title: "GPIO 42 / MTMS (JTAG)", tags: ["GPIO42", "JTAG", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Depuración JTAG / GPIO", safetyText: "Depuración por hardware.", components: ["Depurador JTAG", "GPIO libre"], wiringTip: "3.3V", code: `pinMode(42, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R16", side: "right", pinIndex: 16, silk: "IO41", gpio: 41, title: "GPIO 41 / MTDI (JTAG)", tags: ["GPIO41", "JTAG", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Depuración JTAG / GPIO", safetyText: "Depuración por hardware.", components: ["GPIO libre"], wiringTip: "3.3V", code: `pinMode(41, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R15", side: "right", pinIndex: 15, silk: "IO40", gpio: 40, title: "GPIO 40 / MTDO (JTAG)", tags: ["GPIO40", "JTAG", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Depuración JTAG / GPIO", safetyText: "Depuración por hardware.", components: ["GPIO libre"], wiringTip: "3.3V", code: `pinMode(40, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R14", side: "right", pinIndex: 14, silk: "IO39", gpio: 39, title: "GPIO 39 / MTCK (JTAG)", tags: ["GPIO39", "JTAG", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Depuración JTAG / GPIO", safetyText: "Depuración por hardware.", components: ["GPIO libre"], wiringTip: "3.3V", code: `pinMode(39, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R13", side: "right", pinIndex: 13, silk: "IO38", gpio: 38, title: "GPIO 38 / User LED", tags: ["GPIO38", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "Salida libre.", components: ["LEDs", "Relés"], wiringTip: "3.3V", code: `pinMode(38, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R12", side: "right", pinIndex: 12, silk: "IO37", gpio: 37, title: "GPIO 37 / (Flash Octal)", tags: ["GPIO37"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "warning", safetyTitle: "Precaución Memoria Octal", safetyText: "En módulos Octal WROOM-2 está dedicado a PSRAM.", components: ["Dejar libre si usas Octal"], wiringTip: "Verificar variante", code: `// Memoria Octal`, codeExplanation: { objective: "Precaución", breakdown: [], tips: "" } },
+      { id: "R11", side: "right", pinIndex: 11, silk: "IO36", gpio: 36, title: "GPIO 36 / (Flash Octal)", tags: ["GPIO36"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "warning", safetyTitle: "Precaución Memoria Octal", safetyText: "En módulos Octal WROOM-2 está dedicado a PSRAM.", components: ["Dejar libre si usas Octal"], wiringTip: "Verificar variante", code: `// Memoria Octal`, codeExplanation: { objective: "Precaución", breakdown: [], tips: "" } },
+      { id: "R10", side: "right", pinIndex: 10, silk: "IO35", gpio: 35, title: "GPIO 35 / (Flash Octal)", tags: ["GPIO35"], featureTypes: ["DANGER_FLASH"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "warning", safetyTitle: "Precaución Memoria Octal", safetyText: "Dedicado a bus Octal PSRAM.", components: ["Dejar libre"], wiringTip: "Verificar variante", code: `// Memoria Octal`, codeExplanation: { objective: "Precaución", breakdown: [], tips: "" } },
+      { id: "R9", side: "right", pinIndex: 9, silk: "IO0", gpio: 0, title: "GPIO 0 / Botón BOOT", tags: ["GPIO0", "BOOT", "Strapping", "PWM"], featureTypes: ["STRAPPING", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["buttons_inputs", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Botón BOOT / Strapping", safetyText: "Al pulsar durante boot entra en modo descarga.", components: ["Botón boot integrado"], wiringTip: "Pull-up interno", code: `void setup() { pinMode(0, INPUT_PULLUP); }`, codeExplanation: { objective: "Boot", breakdown: [], tips: "" } },
+      { id: "R8", side: "right", pinIndex: 8, silk: "IO45", gpio: 45, title: "GPIO 45 / Strapping VDD", tags: ["GPIO45", "Strapping", "PWM"], featureTypes: ["STRAPPING", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Strapping Voltaje Flash", safetyText: "Define voltaje LDO de memoria.", components: ["Evitar pull-up externa"], wiringTip: "Dejar libre al arrancar", code: `pinMode(45, OUTPUT);`, codeExplanation: { objective: "Strapping", breakdown: [], tips: "" } },
+      { id: "R7", side: "right", pinIndex: 7, silk: "IO46", gpio: 46, title: "GPIO 46 / Strapping Log", tags: ["GPIO46", "Strapping"], featureTypes: ["STRAPPING", "INPUT_ONLY"], isPWM: false, isDigital: false, isSerial: false, categories: ["buttons_inputs"], dotTypes: [], safety: "warning", safetyTitle: "Solo Entrada / Strapping", safetyText: "Solo entrada en ESP32-S3.", components: ["Entrada digital"], wiringTip: "Solo entrada", code: `pinMode(46, INPUT);`, codeExplanation: { objective: "Entrada", breakdown: [], tips: "" } },
+      { id: "R6", side: "right", pinIndex: 6, silk: "IO49", gpio: 49, title: "GPIO 49 / High Speed IO", tags: ["GPIO49", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "Seguro", safetyText: "E/S de alta velocidad.", components: ["Displays paralelos"], wiringTip: "3.3V", code: `pinMode(49, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "R5", side: "right", pinIndex: 5, silk: "IO19", gpio: 19, title: "GPIO 19 / USB D- (Nativo)", tags: ["GPIO19", "USB_D-", "USB_OTG"], featureTypes: ["USB"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "warning", safetyTitle: "USB Nativo D- (OTG)", safetyText: "Conectado al puerto USB tipo C nativo del S3.", components: ["Puerto USB nativo OTG"], wiringTip: "Dispositivos HID/CDC", code: `#include "USB.h"`, codeExplanation: { objective: "USB Nativo", breakdown: [], tips: "" } },
+      { id: "R4", side: "right", pinIndex: 4, silk: "IO20", gpio: 20, title: "GPIO 20 / USB D+ (Nativo)", tags: ["GPIO20", "USB_D+", "USB_OTG"], featureTypes: ["USB"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: [], safety: "warning", safetyTitle: "USB Nativo D+ (OTG)", safetyText: "Conectado al puerto USB tipo C nativo del S3.", components: ["Puerto USB nativo OTG"], wiringTip: "Dispositivos HID/CDC", code: `#include "USBHID.h"`, codeExplanation: { objective: "USB Nativo", breakdown: [], tips: "" } },
+      { id: "R3", side: "right", pinIndex: 3, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "R2", side: "right", pinIndex: 2, silk: "GND", gpio: null, title: "GND (Masa)", tags: ["GND"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa 0V", safetyText: "0V común.", components: ["GND"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "R1", side: "right", pinIndex: 1, silk: "5V", gpio: null, title: "5V (Alimentación)", tags: ["5V", "Power"], featureTypes: ["POWER_VIN"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Alimentación 5V", safetyText: "Entrada o salida 5V.", components: ["5V"], wiringTip: "5V", code: `// 5V`, codeExplanation: { objective: "Potencia", breakdown: [], tips: "" } }
+    ];
+
+    /* 16-Pin C3 SuperMini Database (8 left, 8 right) */
+    const BASE_PINS_C3 = [
+      { id: "L8", side: "left", pinIndex: 8, silk: "5V", gpio: null, title: "5V / VBUS (Entrada 5V)", tags: ["5V", "VBUS", "Power"], featureTypes: ["POWER_VIN"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Alimentación 5V", safetyText: "Alimenta el regulador LDO ME6211.", components: ["Fuente externa 5V"], wiringTip: "5V", code: `// 5V Input`, codeExplanation: { objective: "Potencia", breakdown: [], tips: "" } },
+      { id: "L7", side: "left", pinIndex: 7, silk: "GND", gpio: null, title: "GND (Masa Común)", tags: ["GND", "Power", "0V"], featureTypes: ["GND"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_gnd"], safety: "safe", safetyTitle: "Masa Común (0V)", safetyText: "Plano de masa común.", components: ["GND sensores"], wiringTip: "0V", code: `// 0V`, codeExplanation: { objective: "GND", breakdown: [], tips: "" } },
+      { id: "L6", side: "left", pinIndex: 6, silk: "3V3", gpio: null, title: "3V3 (Salida 3.3V Regulada)", tags: ["3V3", "Power"], featureTypes: ["POWER_3V3"], isPWM: false, isDigital: false, isSerial: false, categories: [], dotTypes: ["dot_power"], safety: "safe", safetyTitle: "Riel Regulado 3.3V", safetyText: "Salida estable del regulador LDO.", components: ["Sensores 3.3V"], wiringTip: "Máx 500mA", code: `// 3.3V`, codeExplanation: { objective: "Potencia", breakdown: [], tips: "" } },
+      { id: "L5", side: "left", pinIndex: 5, silk: "IO0", gpio: 0, title: "GPIO 0 / ADC1_0", tags: ["GPIO0", "ADC1_0", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro (ADC1)", safetyText: "Entrada analógica libre de Wi-Fi.", components: ["Potenciómetros 10k"], wiringTip: "0-3.3V", code: `analogRead(0);`, codeExplanation: { objective: "Lectura analógica", breakdown: [], tips: "" } },
+      { id: "L4", side: "left", pinIndex: 4, silk: "IO1", gpio: 1, title: "GPIO 1 / ADC1_1", tags: ["GPIO1", "ADC1_1", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro (ADC1)", safetyText: "Canal analógico 1.", components: ["Sensor analógico"], wiringTip: "0-3.3V", code: `analogRead(1);`, codeExplanation: { objective: "Lectura analógica", breakdown: [], tips: "" } },
+      { id: "L3", side: "left", pinIndex: 3, silk: "IO2", gpio: 2, title: "GPIO 2 / Strapping", tags: ["GPIO2", "Strapping", "PWM"], featureTypes: ["STRAPPING", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Strapping Pin (Boot)", safetyText: "Debe estar en nivel ALTO durante el arranque.", components: ["Pull-up interna activa"], wiringTip: "Evitar forzar a GND al encender", code: `pinMode(2, OUTPUT);`, codeExplanation: { objective: "GPIO", breakdown: [], tips: "" } },
+      { id: "L2", side: "left", pinIndex: 2, silk: "IO3", gpio: 3, title: "GPIO 3 / ADC1_3", tags: ["GPIO3", "ADC1_3", "PWM"], featureTypes: ["ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_adc"], safety: "safe", safetyTitle: "Seguro (ADC1)", safetyText: "Entrada analógica libre.", components: ["LDR"], wiringTip: "0-3.3V", code: `analogRead(3);`, codeExplanation: { objective: "Lectura", breakdown: [], tips: "" } },
+      { id: "L1", side: "left", pinIndex: 1, silk: "IO4", gpio: 4, title: "GPIO 4 / ADC1_4 / I2C_SDA", tags: ["GPIO4", "SDA", "ADC1_4", "PWM"], featureTypes: ["I2C", "ADC1", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pots_adc", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc", "dot_adc"], safety: "safe", safetyTitle: "Seguro (Bus I2C SDA)", safetyText: "Línea de datos I2C por defecto en C3.", components: ["Display OLED SSD1306"], wiringTip: "Wire.begin(4, 5)", code: `Wire.begin(4, 5);`, codeExplanation: { objective: "I2C SDA", breakdown: [], tips: "" } },
+
+      // Right 16p C3
+      { id: "R8", side: "right", pinIndex: 8, silk: "IO5", gpio: 5, title: "GPIO 5 / ADC2_0 / I2C_SCL", tags: ["GPIO5", "SCL", "ADC2_0", "PWM"], featureTypes: ["I2C", "ADC2", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_i2c", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_i2c_rtc"], safety: "safe", safetyTitle: "Seguro (Bus I2C SCL)", safetyText: "Línea de reloj I2C por defecto en C3.", components: ["Display OLED SCL", "BME280"], wiringTip: "Wire.begin(4, 5)", code: `Wire.begin(4, 5);`, codeExplanation: { objective: "I2C SCL", breakdown: [], tips: "" } },
+      { id: "R7", side: "right", pinIndex: 7, silk: "IO6", gpio: 6, title: "GPIO 6 / SPI SCK", tags: ["GPIO6", "SPI_SCK", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI SCK)", safetyText: "Reloj maestro SPI en C3.", components: ["Display ST7789"], wiringTip: "Alta velocidad", code: `SPI.begin(6, 2, 7, 10);`, codeExplanation: { objective: "SPI SCK", breakdown: [], tips: "" } },
+      { id: "R6", side: "right", pinIndex: 6, silk: "IO7", gpio: 7, title: "GPIO 7 / SPI MOSI", tags: ["GPIO7", "SPI_MOSI", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI MOSI)", safetyText: "Datos maestro SPI.", components: ["MicroSD", "TFT"], wiringTip: "Datos SPI", code: `SPI.transfer(0xAA);`, codeExplanation: { objective: "SPI MOSI", breakdown: [], tips: "" } },
+      { id: "R5", side: "right", pinIndex: 5, silk: "IO8", gpio: 8, title: "GPIO 8 / LED Azul Onboard", tags: ["GPIO8", "LED_BUILTIN", "PWM"], featureTypes: ["PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["leds_relays", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "safe", safetyTitle: "LED Azul Integrado", safetyText: "Conectado al LED azul SMD del C3 SuperMini.", components: ["LED azul integrado (activo en LOW)"], wiringTip: "digitalWrite(8, LOW) lo enciende", code: `void setup() {\n  pinMode(8, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(8, LOW); delay(300);\n  digitalWrite(8, HIGH); delay(300);\n}`, codeExplanation: { objective: "Control del LED integrado", breakdown: [], tips: "" } },
+      { id: "R4", side: "right", pinIndex: 4, silk: "IO9", gpio: 9, title: "GPIO 9 / Botón BOOT", tags: ["GPIO9", "BOOT", "Strapping"], featureTypes: ["STRAPPING", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["buttons_inputs", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio"], safety: "warning", safetyTitle: "Botón BOOT / Strapping", safetyText: "Posee pull-up interna. Si se lleva a masa en boot entra en modo descarga.", components: ["Botón boot integrado"], wiringTip: "Evitar forzar a GND al encender", code: `pinMode(9, INPUT_PULLUP);`, codeExplanation: { objective: "Boot", breakdown: [], tips: "" } },
+      { id: "R3", side: "right", pinIndex: 3, silk: "IO10", gpio: 10, title: "GPIO 10 / SPI CS", tags: ["GPIO10", "SPI_CS", "PWM"], featureTypes: ["SPI", "PWM"], isPWM: true, isDigital: true, isSerial: false, categories: ["bus_spi", "pwm_analog", "gpio_digital"], dotTypes: ["dot_gpio", "dot_spi"], safety: "safe", safetyTitle: "Seguro (SPI CS)", safetyText: "Chip select SPI.", components: ["CS Display"], wiringTip: "3.3V", code: `digitalWrite(10, LOW);`, codeExplanation: { objective: "Chip Select", breakdown: [], tips: "" } },
+      { id: "R2", side: "right", pinIndex: 2, silk: "IO20", gpio: 20, title: "GPIO 20 / RXD0 (UART0)", tags: ["GPIO20", "RXD0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "safe", safetyTitle: "Receptor Serie UART0", safetyText: "Puerto serie de comunicación.", components: ["GPS Neo-6M"], wiringTip: "UART hardware", code: `Serial.begin(115200);`, codeExplanation: { objective: "UART", breakdown: [], tips: "" } },
+      { id: "R1", side: "right", pinIndex: 1, silk: "IO21", gpio: 21, title: "GPIO 21 / TXD0 (UART0)", tags: ["GPIO21", "TXD0"], featureTypes: ["UART"], isPWM: false, isDigital: false, isSerial: true, categories: ["bus_uart", "serial_ports"], dotTypes: ["dot_uart"], safety: "safe", safetyTitle: "Transmisor Serie UART0", safetyText: "Transmisor serie principal.", components: ["Consola serie"], wiringTip: "UART hardware", code: `Serial.println("C3 SuperMini OK");`, codeExplanation: { objective: "UART", breakdown: [], tips: "" } }
+    ];
+
+    const FEATURE_GLOSSARY = {
+      RTCIO: { badgeClass: "badge-rtcio", badgeText: "RTCIO (Morado)", title: "GPIO del Dominio RTC (Deep Sleep Wakeup)", desc: "Pines energizados durante el modo sueño profundo (Deep Sleep) por el coprocesador ULP.", utility: "Despertar al microcontrolador con pulsadores externos consumiendo menos de 15µA en proyectos a batería." },
+      ADC1: { badgeClass: "badge-adc", badgeText: "ADC1 (Naranja)", title: "Convertidor Analógico-Digital Bloque 1 (12 bits: 0 - 4095)", desc: "Convierte voltajes de 0V a 3.3V en valores de 0 a 4095 con gran rapidez.", utility: "<strong>¡REGLA DE ORO!:</strong> 100% independiente del Wi-Fi. Funciona SIEMPRE con Wi-Fi y Bluetooth activos." },
+      ADC2: { badgeClass: "badge-adc", badgeText: "ADC2 (Naranja)", title: "Convertidor Analógico-Digital Bloque 2 (Compartido con Wi-Fi)", desc: "Segundo convertidor analógico a digital de 12 bits.", utility: "<strong>¡ADVERTENCIA CRÍTICA!:</strong> Comparte hardware con el módulo Wi-Fi. Si inicias WiFi.begin(), el ADC2 se inhabilita." },
+      DAC: { badgeClass: "badge-dac", badgeText: "DAC1 / DAC2 (Dorado / Naranja)", title: "Convertidor Digital a Analógico Real (8 bits: 0 - 255)", desc: "Conversor analógico continuo real (no es simulación de pulsos PWM).", utility: "Genera voltajes continuos para altavoces de audio con amplificador o señales de onda pura mediante dacWrite()." },
+      TOUCH: { badgeClass: "badge-touch", badgeText: "Touch0 - Touch14 (Verde)", title: "Sensor Táctil Capacitivo Integrado", desc: "Sensor de contacto y proximidad por variación de capacitancia física.", utility: "Un simple cable pelado o cinta de cobre detecta el dedo humano con touchRead(), incluso a través de acrílico." },
+      SPI: { badgeClass: "badge-spi", badgeText: "SPI: MOSI, MISO, SCK, CS (Turquesa)", title: "Bus Serial Periférico de Alta Velocidad", desc: "Bus maestro sincrónico de hasta 40MHz a 80MHz.", utility: "Esencial para pantallas a color TFT (ST7789, ILI9341), tarjetas MicroSD y lectores RFID." },
+      I2C: { badgeClass: "badge-i2c", badgeText: "I²C: SDA, SCL (Púrpura)", title: "Bus Inter-Integrated Circuit", desc: "Bus serie de 2 hilos para conectar múltiples sensores en paralelo por direcciones.", utility: "Estándar para pantallas OLED SSD1306, sensores de clima BME280 y relojes RTC DS3231." },
+      UART: { badgeClass: "badge-uart", badgeText: "UART: TX, RX (Amarillo)", title: "Transmisor / Receptor Serie por Hardware", desc: "Puertos serie universales (UART0 para USB de la PC, UART2 para periféricos).", utility: "Conectar GPS Neo-6M o módems celulares SIM800L sin interferir con la carga de código." },
+      PWM: { badgeClass: "top-filter-btn text-amber-300 border-amber-500/40", badgeText: "Onda Senoidal ~ (PWM / LEDC)", title: "Modulación por Ancho de Pulsos (16 Canales LEDC)", desc: "Generador digital de pulsos asignable a cualquier GPIO.", utility: "Atenuación de luminarias LED, control de servomotores a 50Hz o velocidad de motores DC." },
+      INPUT_ONLY: { badgeClass: "badge-adc", badgeText: "Input Only (Solo Entrada)", title: "Pines Exclusivos de Entrada", desc: "Carecen de transistores de salida y resistencias pull internas.", utility: "No pueden controlar relés ni LEDs. Ideales para sensores analógicos con resistencia externa." },
+      STRAPPING: { badgeClass: "badge-uart", badgeText: "Strapping Pin (Precaución)", title: "Pines de Configuración de Arranque (Boot)", desc: "Muestreados en los primeros milisegundos tras energizar la placa.", utility: "Forzar niveles incorrectos al inicio impedirá el arranque o el flasheo de sketches por USB." },
+      ENABLE: { badgeClass: "badge-enable", badgeText: "ENABLE / EN (Verde)", title: "Pin de Habilitación / Reset", desc: "Conectado al Chip-Enable del SoC.", utility: "Pulso a 0V reinicia el ESP32." },
+      GND: { badgeClass: "badge-gnd", badgeText: "GND (Negro)", title: "Masa / Tierra de Referencia (0V)", desc: "Plano común de retorno de corriente.", utility: "Debe compartirse con todos los módulos y fuentes externas." },
+      POWER_VIN: { badgeClass: "badge-vcc", badgeText: "VIN / 5V (Rojo)", title: "Entrada 5V o Salida Directa de USB", desc: "Riel de 5V conectado a VBUS del USB y regulador.", utility: "Alimentar la placa con fuente externa o proveer 5V a relés." },
+      POWER_3V3: { badgeClass: "badge-vcc", badgeText: "VCC / 3V3 (Rojo)", title: "Salida Regulada de 3.3V", desc: "Salida estabilizada del AMS1117 / ME6211.", utility: "Alimentar sensores y pantallas. ¡No aplicar 5V!" },
+      DANGER_FLASH: { badgeClass: "badge-danger", badgeText: "¡PELIGRO FLASH! (Rojo)", title: "Líneas de la Memoria Flash SPI Interna", desc: "Conectadas directamente al silicio de la memoria Flash del módulo.", utility: "NUNCA conectar componentes externos aquí; causa crash inmediato del sistema." },
+      USB: { badgeClass: "badge-usb", badgeText: "USB Nativo D+/D-", title: "Líneas USB OTG Integradas en Silicio", desc: "Conexión directa a los transceptores USB nativos del microcontrolador.", utility: "Crear dispositivos HID, emuladores de teclado, ratón, joystick o MIDI." }
+    };
+
+    let currentChip = "ESP32";
+    let currentProfile = "devkit_v1_30";
+    let activePinsList = [];
+    let currentFilterMode = 'all';
+    let searchQuery = '';
+
+    const chipSelect = document.getElementById('chipSelect');
+    const boardProfileSelect = document.getElementById('boardProfileSelect');
+    const boardSpecText = document.getElementById('boardSpecText');
+    const mainTitleHeader = document.getElementById('mainTitleHeader');
+    const pinCountPill = document.getElementById('pinCountPill');
+    const chipIconBadge = document.getElementById('chipIconBadge');
+    const boardWrapper = document.getElementById('boardWrapper');
+    const boardSvg = document.getElementById('boardSvg');
+    const svgDynamicBoardContent = document.getElementById('svgDynamicBoardContent');
+    const boardLedsOverlay = document.getElementById('boardLedsOverlay');
+    const modalFooterProfile = document.getElementById('modalFooterProfile');
+
+    function populateDropdownsForChip(chipKey) {
+      const chipData = CHIP_CATALOG[chipKey];
+      if (!chipData) return;
+
+      chipIconBadge.textContent = chipData.badge;
+
+      boardProfileSelect.innerHTML = chipData.profiles.map(p => `
+        <option value="${p.id}" ${p.id === currentProfile ? 'selected' : ''}>${p.name}</option>
+      `).join('');
+
+      if (!chipData.profiles.some(p => p.id === currentProfile)) {
+        currentProfile = chipData.profiles[0].id;
+        boardProfileSelect.value = currentProfile;
+      }
+    }
+
+    function buildActivePinsForCurrentConfig(profileData) {
+      if (profileData.boardType === "classic_38") return JSON.parse(JSON.stringify(BASE_PINS_38));
+      if (profileData.boardType === "s3_44") return JSON.parse(JSON.stringify(BASE_PINS_S3));
+      if (profileData.boardType === "c3_16") return JSON.parse(JSON.stringify(BASE_PINS_C3));
+      return JSON.parse(JSON.stringify(BASE_PINS_30));
+    }
+
+    function drawPhysicalBoardSvg(profileData) {
+      const H = profileData.height;
+      const bType = profileData.boardType;
+
+      let interior = '';
+
+      if (bType === 'classic_30') {
+        // --- 1. ESP32 DevKit V1 (30 pins) ---
+        interior = `
+          <!-- Substrate -->
+          <rect x="5" y="5" width="290" height="${H - 10}" rx="24" fill="url(#pcbSubstrate)" stroke="#333944" stroke-width="2"/>
+          <rect x="8" y="8" width="284" height="${H - 16}" rx="21" fill="none" stroke="#21252d" stroke-width="1.5"/>
+
+          <!-- Symmetrical Gold Mounting Holes -->
+          <circle cx="22" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="24" r="6" fill="#040608"/>
+          <circle cx="278" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="24" r="6" fill="#040608"/>
+          <circle cx="22" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="${H - 24}" r="6" fill="#040608"/>
+          <circle cx="278" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="${H - 24}" r="6" fill="#040608"/>
+
+          <!-- 2.4GHz Antenna -->
+          <rect x="64" y="10" width="172" height="48" rx="4" fill="#0c0e12" stroke="#252a33" stroke-width="1.2"/>
+          <path d="M 72,16 L 228,16 L 228,46 L 220,46 L 220,24 L 210,24 L 210,46 L 200,46 L 200,24 L 190,24 L 190,46 L 180,46 L 180,24 L 170,24 L 170,46 L 160,46 L 160,24 L 150,24 L 150,46 L 140,46 L 140,24 L 130,24 L 130,46 L 120,46 L 120,24 L 110,24 L 110,46 L 100,46 L 100,24 L 90,24 L 90,46 L 72,46 Z" fill="#0b0d11" stroke="#cfa235" stroke-width="1.6"/>
+          <text x="150" y="54" fill="#758190" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="700" text-anchor="middle">2.4GHz Wi-Fi + BT (DevKit V1)</text>
+
+          <!-- ESP-WROOM-32 Shield -->
+          <rect x="62" y="80" width="176" height="178" rx="7" fill="url(#metalShield)" stroke="#cbd5e1" stroke-width="1.6" filter="drop-shadow(0 6px 12px rgba(0,0,0,0.85))"/>
+          <circle cx="74" cy="240" r="3.2" fill="#5a6470" stroke="#333d47" stroke-width="1"/>
+
+          <!-- Laser markings -->
+          <g fill="#2b333c" opacity="0.95">
+            <g transform="translate(82, 98) scale(0.55)">
+              <rect x="0" y="0" width="34" height="20" rx="4" fill="none" stroke="#2b333c" stroke-width="2.5"/>
+              <text x="17" y="14" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="900" text-anchor="middle">WiFi</text>
+            </g>
+            <text x="108" y="109" font-family="'Plus Jakarta Sans', sans-serif" font-size="10.5" font-weight="800" text-anchor="start">ESP-WROOM-32</text>
+            <text x="135" y="142" font-family="'Plus Jakarta Sans', sans-serif" font-size="24" font-weight="800" text-anchor="middle" letter-spacing="3">CE</text>
+            <text x="150" y="164" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">R 211-161007</text>
+            <text x="150" y="180" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="700" text-anchor="middle">FCC ID: 2AC7Z-ESPWROOM32</text>
+            <text x="150" y="196" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="600" text-anchor="middle">DevKit V1 • 30 PINS</text>
+            <text x="150" y="226" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle">XXSR69</text>
+          </g>
+
+          <!-- AMS1117 3.3V & CP2102 -->
+          <g filter="drop-shadow(0 4px 6px rgba(0,0,0,0.8))">
+            <rect x="66" y="392" width="48" height="38" rx="3" fill="url(#icEpoxy)" stroke="#475569" stroke-width="1.2"/>
+            <text x="90" y="414" fill="#f1f5f9" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">AMS1117</text>
+            <text x="90" y="424" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="700" text-anchor="middle">3.3V</text>
+
+            <rect x="168" y="388" width="52" height="52" rx="4" fill="url(#icEpoxy)" stroke="#475569" stroke-width="1.2"/>
+            <circle cx="175" cy="395" r="2.2" fill="#64748b"/>
+            <text x="194" y="412" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="middle">SILABS</text>
+            <text x="194" y="423" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="700" text-anchor="middle">CP2102</text>
+          </g>
+
+          <!-- Buttons & USB-C -->
+          <rect x="44" y="${H - 92}" width="34" height="34" rx="6" fill="#1e232d" stroke="#64748b" stroke-width="1.2"/>
+          <circle cx="61" cy="${H - 75}" r="8" fill="#374151" stroke="#cbd5e1" stroke-width="1.5"/><text x="61" y="${H - 40}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">EN</text>
+
+          <rect x="222" y="${H - 92}" width="34" height="34" rx="6" fill="#1e232d" stroke="#64748b" stroke-width="1.2"/>
+          <circle cx="239" cy="${H - 75}" r="8" fill="#374151" stroke="#cbd5e1" stroke-width="1.5"/><text x="239" y="${H - 40}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">BOOT</text>
+
+          <rect x="110" y="${H - 80}" width="80" height="44" rx="8" fill="url(#metalShield)" stroke="#94a3b8" stroke-width="1.8"/>
+          <rect x="123" y="${H - 54}" width="54" height="14" rx="7" fill="#040608" stroke="#334155" stroke-width="1.2"/>
+        `;
+
+        boardLedsOverlay.style.top = '339px';
+        boardLedsOverlay.innerHTML = `
+          <button onclick="inspectInternalLed('power')" class="flex items-center gap-1.5 group cursor-pointer" title="LED Power (Rojo)">
+            <span class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-red-400 group-hover:underline">POWER</span>
+          </button>
+          <div class="w-[1px] h-4 bg-slate-700"></div>
+          <button onclick="openModalByGpio(2)" class="flex items-center gap-1.5 group cursor-pointer" title="LED Integrado GPIO2 (Azul)">
+            <span class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-sky-300 group-hover:underline">GPIO2</span>
+          </button>
+        `;
+
+      } else if (bType === 'classic_38') {
+        // --- 2. ESP32 DevKitC V4 (38 pins) ---
+        interior = `
+          <!-- Substrate wider official look -->
+          <rect x="5" y="5" width="290" height="${H - 10}" rx="22" fill="url(#pcbSubstrate)" stroke="#3a4250" stroke-width="2.2"/>
+          <rect x="8" y="8" width="284" height="${H - 16}" rx="19" fill="none" stroke="#252a33" stroke-width="1.5"/>
+
+          <!-- Symmetrical Gold Holes -->
+          <circle cx="22" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="24" r="6" fill="#040608"/>
+          <circle cx="278" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="24" r="6" fill="#040608"/>
+          <circle cx="22" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="${H - 24}" r="6" fill="#040608"/>
+          <circle cx="278" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="${H - 24}" r="6" fill="#040608"/>
+
+          <!-- Official Espressif Silkscreen header -->
+          <text x="150" y="32" fill="#e2e8f0" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1">ESPRESSIF</text>
+          <text x="150" y="46" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="800" text-anchor="middle">ESP32-DevKitC V4</text>
+
+          <!-- RF Shield ESP32-WROOM-32E -->
+          <rect x="58" y="60" width="184" height="186" rx="8" fill="url(#metalShield)" stroke="#cbd5e1" stroke-width="1.8" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.85))"/>
+          <circle cx="70" cy="232" r="3.5" fill="#475569"/>
+
+          <g fill="#1e293b" opacity="0.95">
+            <text x="150" y="90" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="900" text-anchor="middle">ESP32-WROOM-32E</text>
+            <text x="150" y="132" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="900" text-anchor="middle" letter-spacing="4">CE</text>
+            <text x="150" y="160" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="700" text-anchor="middle">R 211-161007</text>
+            <text x="150" y="180" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">FCC ID: 2AC7Z-ESPWROOM32E</text>
+            <text x="150" y="210" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="800" text-anchor="middle">ROHS COMPLIANT</text>
+          </g>
+
+          <!-- DO NOT USE SPI FLASH WARNING SILKSCREEN -->
+          <g transform="translate(48, ${H - 220})">
+            <rect x="0" y="0" width="204" height="48" rx="8" fill="#450a0a" stroke="#dc2626" stroke-width="1.5"/>
+            <text x="102" y="18" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">⚠️ PINES FLASH INTERNA</text>
+            <text x="102" y="32" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="700" text-anchor="middle">CMD • CLK • SD0 • SD1 • SD2 • SD3</text>
+            <text x="102" y="42" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" text-anchor="middle">¡PROHIBIDO CONECTAR PERIFÉRICOS!</text>
+          </g>
+
+          <!-- CP2102N USB Bridge -->
+          <rect x="122" y="380" width="56" height="56" rx="4" fill="url(#icEpoxy)" stroke="#64748b" stroke-width="1.2"/>
+          <text x="150" y="405" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">CP2102N</text>
+          <text x="150" y="418" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="700" text-anchor="middle">SILICON LABS</text>
+
+          <!-- Buttons & USB -->
+          <rect x="42" y="${H - 96}" width="34" height="34" rx="6" fill="#1e232d" stroke="#64748b" stroke-width="1.2"/>
+          <circle cx="59" cy="${H - 79}" r="8" fill="#374151" stroke="#cbd5e1" stroke-width="1.5"/><text x="59" y="${H - 45}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">EN</text>
+
+          <rect x="224" y="${H - 96}" width="34" height="34" rx="6" fill="#1e232d" stroke="#64748b" stroke-width="1.2"/>
+          <circle cx="241" cy="${H - 79}" r="8" fill="#374151" stroke="#cbd5e1" stroke-width="1.5"/><text x="241" y="${H - 45}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">BOOT</text>
+
+          <rect x="110" y="${H - 85}" width="80" height="48" rx="8" fill="url(#metalShield)" stroke="#94a3b8" stroke-width="1.8"/>
+          <rect x="123" y="${H - 58}" width="54" height="14" rx="7" fill="#040608" stroke="#334155" stroke-width="1.2"/>
+        `;
+
+        boardLedsOverlay.style.top = '300px';
+        boardLedsOverlay.innerHTML = `
+          <button onclick="inspectInternalLed('power')" class="flex items-center gap-1.5 group cursor-pointer" title="LED Power (Rojo)">
+            <span class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-red-400 group-hover:underline">PWR</span>
+          </button>
+          <div class="w-[1px] h-4 bg-slate-700"></div>
+          <button onclick="openModalByGpio(2)" class="flex items-center gap-1.5 group cursor-pointer" title="LED Integrado GPIO2 (Azul)">
+            <span class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-sky-300 group-hover:underline">GPIO2</span>
+          </button>
+        `;
+
+      } else if (bType === 's3_44') {
+        // --- 3. ESP32-S3 DevKitC-1 (44 pins with DUAL USB-C) ---
+        interior = `
+          <!-- Substrate extended 44-pin -->
+          <rect x="5" y="5" width="290" height="${H - 10}" rx="24" fill="url(#pcbSubstrate)" stroke="#38bdf8" stroke-width="1.5"/>
+          <rect x="8" y="8" width="284" height="${H - 16}" rx="21" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+          <!-- Symmetrical Gold Holes -->
+          <circle cx="22" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="24" r="6" fill="#040608"/>
+          <circle cx="278" cy="24" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="24" r="6" fill="#040608"/>
+          <circle cx="22" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="22" cy="${H - 24}" r="6" fill="#040608"/>
+          <circle cx="278" cy="${H - 24}" r="10" fill="url(#goldHole)" stroke="#523e05" stroke-width="1"/><circle cx="278" cy="${H - 24}" r="6" fill="#040608"/>
+
+          <!-- Header AI vector silk -->
+          <text x="150" y="32" fill="#38bdf8" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1">ESPRESSIF</text>
+          <text x="150" y="46" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle">ESP32-S3-DevKitC-1 (44P)</text>
+
+          <!-- ESP32-S3 Shield with Vector Engine Markings -->
+          <rect x="58" y="60" width="184" height="200" rx="8" fill="url(#metalShield)" stroke="#cbd5e1" stroke-width="1.8" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.85))"/>
+          <circle cx="70" cy="246" r="3.5" fill="#475569"/>
+
+          <g fill="#1e293b" opacity="0.95">
+            <text x="150" y="92" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="900" text-anchor="middle">ESP32-S3-WROOM-1</text>
+            <text x="150" y="110" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="700" text-anchor="middle">XTENSA® DUAL LX7 + VECTOR IA</text>
+            <text x="150" y="148" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="900" text-anchor="middle" letter-spacing="4">CE</text>
+            <text x="150" y="174" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="700" text-anchor="middle">FCC ID: 2AC7Z-ESPS3WROOM1</text>
+            <text x="150" y="196" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">OCTAL/QUAD SPI FLASH</text>
+            <text x="150" y="234" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle">S3-SERIES-AI</text>
+          </g>
+
+          <!-- WS2812B RGB Addressable LED Onboard -->
+          <g transform="translate(130, 310)">
+            <rect x="0" y="0" width="40" height="40" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" filter="drop-shadow(0 0 10px rgba(56, 189, 248, 0.4))"/>
+            <circle cx="20" cy="20" r="12" fill="#0369a1" stroke="#38bdf8" stroke-width="1.2"/>
+            <circle cx="20" cy="20" r="7" fill="#f43f5e" opacity="0.9" class="animate-pulse"/>
+            <text x="20" y="48" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="middle">RGB WS2812 (IO48)</text>
+          </g>
+
+          <!-- DUAL USB PORTS IDENTIFIERS (USB Native OTG vs UART Bridge) -->
+          <g transform="translate(56, ${H - 120})">
+            <!-- Left: USB OTG Nativo -->
+            <rect x="0" y="12" width="70" height="52" rx="8" fill="url(#metalShield)" stroke="#38bdf8" stroke-width="1.8"/>
+            <rect x="12" y="38" width="46" height="14" rx="7" fill="#040608" stroke="#334155" stroke-width="1.2"/>
+            <text x="35" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">USB (OTG)</text>
+            <text x="35" y="-6" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="700" text-anchor="middle">Nativo (IO19/20)</text>
+
+            <!-- Right: UART Debug Bridge -->
+            <rect x="118" y="12" width="70" height="52" rx="8" fill="url(#metalShield)" stroke="#94a3b8" stroke-width="1.8"/>
+            <rect x="130" y="38" width="46" height="14" rx="7" fill="#040608" stroke="#334155" stroke-width="1.2"/>
+            <text x="153" y="4" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">UART</text>
+            <text x="153" y="-6" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="700" text-anchor="middle">Debug / Flasheo</text>
+          </g>
+        `;
+
+        boardLedsOverlay.style.top = '390px';
+        boardLedsOverlay.innerHTML = `
+          <button onclick="inspectInternalLed('power')" class="flex items-center gap-1.5 group cursor-pointer" title="LED Power (Rojo)">
+            <span class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-red-400 group-hover:underline">PWR</span>
+          </button>
+          <div class="w-[1px] h-4 bg-slate-700"></div>
+          <button onclick="openModalByGpio(48)" class="flex items-center gap-1.5 group cursor-pointer" title="LED RGB WS2812B (GPIO48)">
+            <span class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-rose-300 group-hover:underline">RGB: IO48</span>
+          </button>
+        `;
+
+      } else if (bType === 'c3_16') {
+        // --- 4. ESP32-C3 SuperMini (16 pins - Bare-die QFN32 footprint) ---
+        interior = `
+          <!-- Compact PCB Stamp Footprint -->
+          <rect x="10" y="5" width="280" height="${H - 10}" rx="14" fill="url(#pcbSubstrate)" stroke="#10b981" stroke-width="2"/>
+          <rect x="13" y="8" width="274" height="${H - 16}" rx="11" fill="none" stroke="#064e3b" stroke-width="1.2"/>
+
+          <!-- Top Ceramic Chip Antenna -->
+          <rect x="90" y="14" width="120" height="26" rx="4" fill="#047857" stroke="#34d399" stroke-width="1.5"/>
+          <text x="150" y="31" fill="#ecfdf5" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">CERAMIC 2.4G ANT</text>
+
+          <!-- BARE DIE QFN-32 ESP32-C3 CHIP (NO METAL SHIELD!) -->
+          <g transform="translate(90, 80)">
+            <rect x="0" y="0" width="120" height="120" rx="8" fill="url(#icEpoxy)" stroke="#34d399" stroke-width="1.8" filter="drop-shadow(0 10px 20px rgba(0,0,0,0.9))"/>
+            <circle cx="14" cy="14" r="3.5" fill="#10b981"/>
+            
+            <text x="60" y="42" fill="#34d399" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="900" text-anchor="middle">ESPRESSIF</text>
+            <text x="60" y="64" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="900" text-anchor="middle">ESP32-C3</text>
+            <text x="60" y="80" fill="#a7f3d0" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="800" text-anchor="middle">RISC-V 32-bit</text>
+            <text x="60" y="96" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="700" text-anchor="middle">4MB FLASH • BLE 5.0</text>
+          </g>
+
+          <!-- SuperMini Branding -->
+          <text x="150" y="235" fill="#f8fafc" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">C3 SuperMini</text>
+          <text x="150" y="252" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="800" text-anchor="middle">16 PINS ULTRA-COMPACT</text>
+
+          <!-- LDO & SMD parts -->
+          <rect x="132" y="275" width="36" height="24" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="150" y="291" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" text-anchor="middle">ME6211</text>
+
+          <!-- USB-C Port centered -->
+          <rect x="105" y="${H - 74}" width="90" height="52" rx="8" fill="url(#metalShield)" stroke="#10b981" stroke-width="1.8"/>
+          <rect x="120" y="${H - 46}" width="60" height="15" rx="7.5" fill="#040608" stroke="#334155" stroke-width="1.2"/>
+        `;
+
+        boardLedsOverlay.style.top = '320px';
+        boardLedsOverlay.innerHTML = `
+          <button onclick="inspectInternalLed('power')" class="flex items-center gap-1.5 group cursor-pointer" title="LED Power (Rojo)">
+            <span class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-red-400 group-hover:underline">PWR</span>
+          </button>
+          <div class="w-[1px] h-4 bg-slate-700"></div>
+          <button onclick="openModalByGpio(8)" class="flex items-center gap-1.5 group cursor-pointer" title="LED Azul Usuario (GPIO8)">
+            <span class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></span>
+            <span class="text-[9px] font-mono font-bold text-sky-300 group-hover:underline">LED: IO8</span>
+          </button>
+        `;
+      }
+
+      svgDynamicBoardContent.innerHTML = interior;
+    }
+
+    function createConnectorSvg(isLeft, isPwm) {
+      const midY = 21;
+      let pathData = '';
+      if (isLeft) {
+        if (isPwm) {
+          pathData = `M 0,${midY} L 28,${midY} C 36,${midY - 14} 44,${midY - 14} 50,${midY} C 56,${midY + 14} 64,${midY + 14} 72,${midY} L 100,${midY}`;
+        } else {
+          pathData = `M 0,${midY} L 100,${midY}`;
+        }
+      } else {
+        if (isPwm) {
+          pathData = `M 0,${midY} L 28,${midY} C 36,${midY - 14} 44,${midY - 14} 50,${midY} C 56,${midY + 14} 64,${midY + 14} 72,${midY} L 100,${midY}`;
+        } else {
+          pathData = `M 0,${midY} L 100,${midY}`;
+        }
+      }
+
+      return `
+        <svg class="wire-svg" viewBox="0 0 100 42" preserveAspectRatio="none">
+          <path class="wire-path ${isPwm ? 'pwm-wire' : ''}" d="${pathData}" />
+        </svg>
+      `;
+    }
+
+    function generateBadgesForPin(pin) {
+      let html = '';
+      if (pin.featureTypes.includes('POWER_VIN') || pin.featureTypes.includes('POWER_3V3')) {
+        html += `<span class="px-2 py-0.5 rounded text-[11px] font-mono badge-vcc">${pin.silk}</span>`;
+      } else if (pin.featureTypes.includes('GND')) {
+        html += `<span class="px-2 py-0.5 rounded text-[11px] font-mono badge-gnd">${pin.silk}</span>`;
+      } else if (pin.featureTypes.includes('ENABLE')) {
+        html += `<span class="px-2 py-0.5 rounded text-[11px] font-mono badge-enable">${pin.silk}</span>`;
+      } else if (pin.featureTypes.includes('DANGER_FLASH')) {
+        html += `<span class="px-2 py-0.5 rounded text-[11px] font-mono badge-danger">${pin.silk}</span>`;
+      } else {
+        if (pin.featureTypes.includes('RTCIO')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-rtcio">RTC</span>`;
+        if (pin.featureTypes.includes('TOUCH')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-touch">Touch</span>`;
+        if (pin.featureTypes.includes('ADC1')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-adc">ADC1</span>`;
+        if (pin.featureTypes.includes('ADC2')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-adc">ADC2</span>`;
+        if (pin.featureTypes.includes('DAC')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-dac">DAC</span>`;
+        if (pin.featureTypes.includes('SPI')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-spi">SPI</span>`;
+        if (pin.featureTypes.includes('I2C')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-i2c">I2C</span>`;
+        if (pin.featureTypes.includes('UART')) html += `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-mono badge-uart">UART</span>`;
+        html += `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono badge-gpio">${pin.silk}</span>`;
+      }
+      return html;
+    }
+
+    const leftContainer = document.getElementById('leftContainer');
+    const rightContainer = document.getElementById('rightContainer');
+    const pcbHeaderLeft = document.getElementById('pcbHeaderLeft');
+    const pcbHeaderRight = document.getElementById('pcbHeaderRight');
+    const svgSilkscreenLeft = document.getElementById('svgSilkscreenLeft');
+    const svgSilkscreenRight = document.getElementById('svgSilkscreenRight');
+    const svgSolderPadsLeft = document.getElementById('svgSolderPadsLeft');
+    const svgSolderPadsRight = document.getElementById('svgSolderPadsRight');
+
+    function renderSynchronizedPinout() {
+      leftContainer.innerHTML = '';
+      rightContainer.innerHTML = '';
+      pcbHeaderLeft.innerHTML = '';
+      pcbHeaderRight.innerHTML = '';
+      svgSilkscreenLeft.innerHTML = '';
+      svgSilkscreenRight.innerHTML = '';
+      svgSolderPadsLeft.innerHTML = '';
+      svgSolderPadsRight.innerHTML = '';
+
+      const leftPins = activePinsList.filter(p => p.side === 'left');
+      const rightPins = activePinsList.filter(p => p.side === 'right');
+
+      leftPins.forEach((pin, idx) => {
+        const yPos = 45 + (idx * 42);
+
+        svgSilkscreenLeft.innerHTML += `<text x="40" y="${yPos + 3}">${pin.silk}</text>`;
+        svgSolderPadsLeft.innerHTML += `
+          <circle cx="16" cy="${yPos}" r="7.5" fill="url(#tinSolderPad)" stroke="#333d47" stroke-width="0.8"/>
+          <circle cx="16" cy="${yPos}" r="3.2" fill="#040608"/>
+        `;
+
+        const row = document.createElement('div');
+        row.id = `row-${pin.id}`;
+        row.className = `pin-row cursor-pointer select-none group ${pin.isPWM ? 'is-pwm' : ''}`;
+        row.dataset.pinId = pin.id;
+
+        row.innerHTML = `
+          <div class="flex items-center gap-1.5 justify-end flex-1 pr-2">
+            ${generateBadgesForPin(pin)}
+          </div>
+          <div class="num-box">${pin.pinIndex}</div>
+          ${createConnectorSvg(true, pin.isPWM)}
+        `;
+
+        row.onclick = () => openPinModal(pin);
+        row.onmouseenter = () => highlightPinPair(pin.id, true);
+        row.onmouseleave = () => highlightPinPair(pin.id, false);
+        leftContainer.appendChild(row);
+
+        const padSlot = document.createElement('div');
+        padSlot.className = 'w-4 flex items-center justify-center';
+        padSlot.style.height = 'var(--row-height)';
+        
+        const pad = document.createElement('div');
+        pad.id = `pad-${pin.id}`;
+        pad.className = 'board-pin-contact';
+        pad.title = `${pin.silk} (Pin ${pin.pinIndex}) - Clic para ver ficha técnica`;
+        pad.onclick = () => openPinModal(pin);
+        pad.onmouseenter = () => highlightPinPair(pin.id, true);
+        pad.onmouseleave = () => highlightPinPair(pin.id, false);
+
+        padSlot.appendChild(pad);
+        pcbHeaderLeft.appendChild(padSlot);
+      });
+
+      rightPins.forEach((pin, idx) => {
+        const yPos = 45 + (idx * 42);
+
+        svgSilkscreenRight.innerHTML += `<text x="260" y="${yPos + 3}">${pin.silk}</text>`;
+        svgSolderPadsRight.innerHTML += `
+          <circle cx="284" cy="${yPos}" r="7.5" fill="url(#tinSolderPad)" stroke="#333d47" stroke-width="0.8"/>
+          <circle cx="284" cy="${yPos}" r="3.2" fill="#040608"/>
+        `;
+
+        const row = document.createElement('div');
+        row.id = `row-${pin.id}`;
+        row.className = `pin-row cursor-pointer select-none group ${pin.isPWM ? 'is-pwm' : ''}`;
+        row.dataset.pinId = pin.id;
+
+        row.innerHTML = `
+          ${createConnectorSvg(false, pin.isPWM)}
+          <div class="num-box">${pin.pinIndex}</div>
+          <div class="flex items-center gap-1.5 justify-start flex-1 pl-2">
+            ${generateBadgesForPin(pin)}
+          </div>
+        `;
+
+        row.onclick = () => openPinModal(pin);
+        row.onmouseenter = () => highlightPinPair(pin.id, true);
+        row.onmouseleave = () => highlightPinPair(pin.id, false);
+        rightContainer.appendChild(row);
+
+        const padSlot = document.createElement('div');
+        padSlot.className = 'w-4 flex items-center justify-center';
+        padSlot.style.height = 'var(--row-height)';
+
+        const pad = document.createElement('div');
+        pad.id = `pad-${pin.id}`;
+        pad.className = 'board-pin-contact';
+        pad.title = `${pin.silk} (Pin ${pin.pinIndex}) - Clic para ver ficha técnica`;
+        pad.onclick = () => openPinModal(pin);
+        pad.onmouseenter = () => highlightPinPair(pin.id, true);
+        pad.onmouseleave = () => highlightPinPair(pin.id, false);
+
+        padSlot.appendChild(pad);
+        pcbHeaderRight.appendChild(padSlot);
+      });
+    }
+
+    function highlightPinPair(pinId, active) {
+      const row = document.getElementById(`row-${pinId}`);
+      const pad = document.getElementById(`pad-${pinId}`);
+      if (row) {
+        if (active) row.classList.add('active-highlight');
+        else row.classList.remove('active-highlight');
+      }
+      if (pad) {
+        if (active) pad.classList.add('contact-active');
+        else pad.classList.remove('contact-active');
+      }
+    }
+
+    function switchBoardProfile() {
+      const chipData = CHIP_CATALOG[currentChip];
+      const profileData = chipData.profiles.find(p => p.id === currentProfile) || chipData.profiles[0];
+
+      boardSpecText.textContent = `${currentChip} • ${profileData.name}`;
+      mainTitleHeader.innerHTML = `${currentChip} ${profileData.name.replace(/\(.*?\)/g, '')} <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-bold">${profileData.pins} PINES</span>`;
+      pinCountPill.textContent = `${profileData.pins} PINES`;
+      modalFooterProfile.textContent = `${currentChip} - ${profileData.name}`;
+
+      boardWrapper.style.height = `${profileData.height}px`;
+      boardSvg.setAttribute('viewBox', `0 0 300 ${profileData.height}`);
+
+      activePinsList = buildActivePinsForCurrentConfig(profileData);
+
+      drawPhysicalBoardSvg(profileData);
+      renderSynchronizedPinout();
+      applyAllFilters();
+    }
+
+    chipSelect.addEventListener('change', (e) => {
+      currentChip = e.target.value;
+      populateDropdownsForChip(currentChip);
+      currentProfile = boardProfileSelect.value;
+      switchBoardProfile();
+    });
+
+    boardProfileSelect.addEventListener('change', (e) => {
+      currentProfile = e.target.value;
+      switchBoardProfile();
+    });
+
+    const variantsModal = document.getElementById('variantsModal');
+    const variantsCard = document.getElementById('variantsCard');
+    const variantsInfoBtn = document.getElementById('variantsInfoBtn');
+    const closeVariantsBtn = document.getElementById('closeVariantsBtn');
+    const closeVariantsBtnFooter = document.getElementById('closeVariantsBtnFooter');
+
+    function openVariantsModal() {
+      const chipData = CHIP_CATALOG[currentChip];
+      const profileData = chipData.profiles.find(p => p.id === currentProfile) || chipData.profiles[0];
+      const sp = profileData.specs;
+
+      document.getElementById('varModalTitle').textContent = `Ficha Técnica: ${currentChip} - ${profileData.name}`;
+      document.getElementById('varModalSubtitle').textContent = `Conteo Total: ${profileData.pins} Pines Físicos • Arquitectura ${sp.arch}`;
+
+      // 1. General Specs
+      document.getElementById('varChipArch').textContent = sp.arch;
+      document.getElementById('varChipFreq').textContent = sp.freq;
+      document.getElementById('varChipMemory').textContent = sp.memory;
+      document.getElementById('varChipWireless').textContent = sp.wireless;
+      document.getElementById('varChipSummary').textContent = sp.summary;
+
+      // 2. Variants List
+      document.getElementById('varVariantsList').innerHTML = sp.variants.map(v => `
+        <div class="bg-[#090e18] border border-slate-800 p-3.5 rounded-2xl flex flex-col gap-1">
+          <strong class="text-purple-300 font-mono text-xs">${v.name}</strong>
+          <p class="text-slate-300 text-xs leading-relaxed">${v.desc}</p>
+        </div>
+      `).join('');
+
+      // 3. Recommended Projects
+      document.getElementById('varProjectsList').innerHTML = sp.projects.map(p => `
+        <div class="bg-[#08121f] border border-emerald-900/40 p-3.5 rounded-2xl flex flex-col gap-1.5">
+          <strong class="text-emerald-300 font-mono text-xs">${p.title}</strong>
+          <p class="text-slate-300 text-xs leading-relaxed">${p.desc}</p>
+        </div>
+      `).join('');
+
+      // 4. Critical Hardware Warnings
+      document.getElementById('varWarningsBox').innerHTML = sp.warnings.map(w => `
+        <div class="flex items-start gap-2">
+          <span class="text-rose-400 mt-0.5 shrink-0">⚠️</span>
+          <div>${w}</div>
+        </div>
+      `).join('');
+
+      variantsModal.classList.remove('opacity-0', 'pointer-events-none');
+      variantsCard.classList.remove('scale-95');
+      variantsCard.classList.add('scale-100');
+    }
+
+    function closeVariantsModal() {
+      variantsModal.classList.add('opacity-0', 'pointer-events-none');
+      variantsCard.classList.remove('scale-100');
+      variantsCard.classList.add('scale-95');
+    }
+
+    variantsInfoBtn.addEventListener('click', openVariantsModal);
+    closeVariantsBtn.addEventListener('click', closeVariantsModal);
+    closeVariantsBtnFooter.addEventListener('click', closeVariantsModal);
+    variantsModal.addEventListener('click', (e) => { if (e.target === variantsModal) closeVariantsModal(); });
+
+    const pinModal = document.getElementById('pinModal');
+    const pinModalCard = document.getElementById('pinModalCard');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalCloseBtnFooter = document.getElementById('modalCloseBtnFooter');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+
+    function openPinModal(pin) {
+      document.getElementById('modalPinNumber').textContent = pin.pinIndex;
+      document.getElementById('modalTitle').textContent = pin.title;
+      document.getElementById('modalSubtitle').textContent = `Serigrafía: ${pin.silk} ${pin.gpio !== null ? `• GPIO ${pin.gpio}` : ''} • Lado ${pin.side === 'left' ? 'Izquierdo' : 'Derecho'}`;
+
+      const pwmBadge = document.getElementById('modalPwmBadge');
+      if (pin.isPWM) pwmBadge.classList.remove('hidden');
+      else pwmBadge.classList.add('hidden');
+
+      const safetyBox = document.getElementById('modalSafety');
+      if (pin.safety === 'safe') {
+        safetyBox.className = 'p-3.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 flex items-start gap-3';
+        safetyBox.innerHTML = `
+          <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div>
+            <strong class="font-bold block text-emerald-200">${pin.safetyTitle}</strong>
+            <p class="text-xs text-emerald-300/90 mt-0.5">${pin.safetyText}</p>
+          </div>
+        `;
+      } else if (pin.safety === 'input-only') {
+        safetyBox.className = 'p-3.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 flex items-start gap-3';
+        safetyBox.innerHTML = `
+          <svg class="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div>
+            <strong class="font-bold block text-cyan-100">${pin.safetyTitle}</strong>
+            <p class="text-xs text-cyan-200/90 mt-0.5">${pin.safetyText}</p>
+          </div>
+        `;
+      } else if (pin.safety === 'warning') {
+        safetyBox.className = 'p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-amber-200 flex items-start gap-3';
+        safetyBox.innerHTML = `
+          <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <div>
+            <strong class="font-bold block text-amber-100">${pin.safetyTitle}</strong>
+            <p class="text-xs text-amber-200/90 mt-0.5">${pin.safetyText}</p>
+          </div>
+        `;
+      } else {
+        safetyBox.className = 'p-3.5 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 flex items-start gap-3';
+        safetyBox.innerHTML = `
+          <svg class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+          <div>
+            <strong class="font-bold block text-rose-100">${pin.safetyTitle}</strong>
+            <p class="text-xs text-rose-200/90 mt-0.5">${pin.safetyText}</p>
+          </div>
+        `;
+      }
+
+      // Tags
+      document.getElementById('modalTags').innerHTML = pin.tags.map(tag => `
+        <span class="px-2 py-0.5 rounded-lg bg-[#162136] text-sky-300 border border-sky-800/60 font-mono text-[11px]">${tag}</span>
+      `).join('');
+
+      // Non-blue tags explanation
+      const explanationsContainer = document.getElementById('modalLabelExplanations');
+      const typesToExplain = pin.featureTypes || [];
+      if (typesToExplain.length === 0) {
+        explanationsContainer.innerHTML = `<p class="text-slate-400 text-xs italic">Este pin no posee buses secundarios o analógicos especiales.</p>`;
+      } else {
+        explanationsContainer.innerHTML = typesToExplain.map(typeKey => {
+          const item = FEATURE_GLOSSARY[typeKey];
+          if (!item) return '';
+          return `
+            <div class="bg-[#070b13] border border-slate-800 rounded-xl p-3 flex flex-col gap-1.5 transition-colors hover:border-slate-700">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${item.badgeClass}">${item.badgeText}</span>
+                <span class="text-xs font-bold text-white tracking-wide">${item.title}</span>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">${item.desc}</p>
+              <div class="text-[11px] text-sky-300/90 bg-sky-950/40 border border-sky-900/40 rounded-lg p-2 mt-0.5">
+                <strong class="text-sky-200">Utilidad práctica:</strong> ${item.utility}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Connectable components
+      document.getElementById('modalComponents').innerHTML = pin.components.map(c => `
+        <div class="flex items-start gap-2 text-xs sm:text-sm">
+          <span class="text-cyan-400 mt-1 shrink-0 font-bold">▸</span>
+          <div class="text-slate-300">${c}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('modalWiringTip').innerHTML = pin.wiringTip || "Respeta los niveles lógicos de 3.3V del microcontrolador.";
+      document.getElementById('modalCode').textContent = pin.code || "// Código de ejemplo listo";
+
+      // Step-by-Step Code Explanation
+      const exp = pin.codeExplanation || {
+        objective: "Demostrar la configuración eléctrica básica del pin.",
+        breakdown: [{ fn: "Hardware directo", desc: "Comportamiento gestionado por el microcontrolador." }],
+        tips: "Revisar niveles lógicos antes de energizar."
+      };
+
+      document.getElementById('modalCodeObjective').textContent = exp.objective;
+      document.getElementById('modalCodeBreakdown').innerHTML = exp.breakdown.map(item => `
+        <div class="bg-[#040813] border border-slate-800/80 rounded-lg p-2.5 flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-3">
+          <code class="text-emerald-300 font-bold bg-emerald-950/50 px-2 py-0.5 rounded text-[11px] shrink-0 border border-emerald-800/50">
+            ${item.fn}
+          </code>
+          <span class="text-slate-300 text-xs font-sans">${item.desc}</span>
+        </div>
+      `).join('');
+      document.getElementById('modalCodeTips').textContent = exp.tips;
+
+      pinModal.classList.remove('opacity-0', 'pointer-events-none');
+      pinModalCard.classList.remove('scale-95');
+      pinModalCard.classList.add('scale-100');
+    }
+
+    function closePinModal() {
+      pinModal.classList.add('opacity-0', 'pointer-events-none');
+      pinModalCard.classList.remove('scale-100');
+      pinModalCard.classList.add('scale-95');
+    }
+
+    closeModalBtn.addEventListener('click', closePinModal);
+    modalCloseBtnFooter.addEventListener('click', closePinModal);
+    pinModal.addEventListener('click', (e) => { if (e.target === pinModal) closePinModal(); });
+
+    copyCodeBtn.addEventListener('click', () => {
+      const text = document.getElementById('modalCode').textContent;
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      try {
+        document.execCommand('copy');
+        copyCodeBtn.textContent = '¡Copiado con éxito!';
+        setTimeout(() => { copyCodeBtn.textContent = 'Copiar código'; }, 2000);
+      } catch (err) {}
+      document.body.removeChild(el);
+    });
+
+    const topFilterBtns = document.querySelectorAll('.top-filter-btn');
+    const dotFilterBtns = document.querySelectorAll('.dot-filter-btn');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const matchCountText = document.getElementById('matchCountText');
+
+    function applyAllFilters() {
+      const rows = document.querySelectorAll('.pin-row');
+      let activeCount = 0;
+      const totalCount = activePinsList.length;
+
+      rows.forEach(row => {
+        const pinId = row.dataset.pinId;
+        const pin = activePinsList.find(p => p.id === pinId);
+        const pad = document.getElementById(`pad-${pinId}`);
+        if (!pin) return;
+
+        let matchesFilter = false;
+        if (currentFilterMode === 'all') matchesFilter = true;
+        else if (currentFilterMode === 'leds_relays') matchesFilter = pin.categories.includes('leds_relays');
+        else if (currentFilterMode === 'pots_adc') matchesFilter = pin.categories.includes('pots_adc');
+        else if (currentFilterMode === 'buttons_inputs') matchesFilter = pin.categories.includes('buttons_inputs');
+        else if (currentFilterMode === 'bus_i2c') matchesFilter = pin.categories.includes('bus_i2c');
+        else if (currentFilterMode === 'bus_spi') matchesFilter = pin.categories.includes('bus_spi');
+        else if (currentFilterMode === 'bus_uart') matchesFilter = pin.categories.includes('bus_uart');
+        else if (currentFilterMode === 'dac_output') matchesFilter = pin.categories.includes('dac_output');
+        else if (currentFilterMode === 'touch_sensor') matchesFilter = pin.categories.includes('touch_sensor');
+        else if (currentFilterMode === 'pwm_analog') matchesFilter = pin.isPWM === true;
+        else if (currentFilterMode === 'gpio_digital') matchesFilter = pin.isDigital === true;
+        else if (currentFilterMode === 'serial_ports') matchesFilter = pin.isSerial === true;
+        else if (currentFilterMode === 'dot_power') matchesFilter = pin.dotTypes.includes('dot_power');
+        else if (currentFilterMode === 'dot_gnd') matchesFilter = pin.dotTypes.includes('dot_gnd');
+        else if (currentFilterMode === 'dot_gpio') matchesFilter = pin.dotTypes.includes('dot_gpio');
+        else if (currentFilterMode === 'dot_adc') matchesFilter = pin.dotTypes.includes('dot_adc');
+        else if (currentFilterMode === 'dot_i2c_rtc') matchesFilter = pin.dotTypes.includes('dot_i2c_rtc');
+        else if (currentFilterMode === 'dot_spi') matchesFilter = pin.dotTypes.includes('dot_spi');
+        else if (currentFilterMode === 'dot_uart') matchesFilter = pin.dotTypes.includes('dot_uart');
+        else if (currentFilterMode === 'dot_touch') matchesFilter = pin.dotTypes.includes('dot_touch');
+
+        let matchesSearch = true;
+        if (searchQuery.trim() !== '') {
+          const q = searchQuery.toLowerCase().trim();
+          const haystack = `${pin.silk} ${pin.gpio} ${pin.title} ${pin.tags.join(' ')} ${pin.components.join(' ')} ${(pin.featureTypes || []).join(' ')}`.toLowerCase();
+          matchesSearch = haystack.includes(q);
+        }
+
+        if (currentFilterMode === 'pwm_analog') row.classList.add('pwm-pulse');
+        else row.classList.remove('pwm-pulse');
+
+        if (matchesFilter && matchesSearch) {
+          row.classList.remove('dimmed');
+          if (pad) pad.classList.remove('opacity-10');
+          activeCount++;
+        } else {
+          row.classList.add('dimmed');
+          if (pad) pad.classList.add('opacity-10');
+        }
+      });
+
+      matchCountText.textContent = `${activeCount}/${totalCount} Pines Coincidentes`;
+    }
+
+    topFilterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        topFilterBtns.forEach(b => b.classList.remove('active'));
+        dotFilterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilterMode = btn.dataset.filter;
+        applyAllFilters();
+      });
+    });
+
+    dotFilterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        topFilterBtns.forEach(b => b.classList.remove('active'));
+        dotFilterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilterMode = btn.dataset.filter;
+        applyAllFilters();
+      });
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchQuery.length > 0) clearSearchBtn.classList.remove('hidden');
+      else clearSearchBtn.classList.add('hidden');
+      applyAllFilters();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      applyAllFilters();
+    });
+
+    function openModalByGpio(gpioNum) {
+      const pin = activePinsList.find(p => p.gpio === gpioNum);
+      if (pin) openPinModal(pin);
+    }
+
+    function inspectInternalLed(type) {
+      if (type === 'power') {
+        const pwrMock = {
+          id: "PWR",
+          side: "center",
+          pinIndex: "PWR",
+          silk: "LED POWER",
+          gpio: null,
+          title: "LED Testigo de Alimentación (Power)",
+          tags: ["LED Rojo", "Power", "Hardware"],
+          featureTypes: ["POWER_3V3"],
+          isPWM: false,
+          safety: "safe",
+          safetyTitle: "Indicador Eléctrico de Estado",
+          safetyText: "LED alimentado directamente a través del bus de 3.3V de la placa.",
+          components: ["<strong>Diagnóstico visual de energía:</strong> Si no se ilumina, no hay energía en el puerto USB o existe un cortocircuito grave.", "<strong>No es programable por código.</strong>"],
+          wiringTip: "Si parpadea o baja su intensidad, la fuente no provee suficiente corriente.",
+          code: `// Indicador eléctrico directo de hardware.\n// Permanece encendido mientras reciba 5V en VIN o USB.`,
+          codeExplanation: {
+            objective: "Monitoreo del suministro eléctrico de la placa.",
+            breakdown: [{ fn: "LED Rojo SMD", desc: "En serie con resistencia de 1kΩ conectado a 3.3V." }],
+            tips: "Si se apaga al conectar un componente, desconecta de inmediato."
+          }
+        };
+        openPinModal(pwrMock);
+      }
+    }
+
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      populateDropdownsForChip(currentChip);
+      switchBoardProfile();
+    });
+  </script>
+</body>
+</html>
